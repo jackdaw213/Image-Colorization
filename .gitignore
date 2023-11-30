@@ -1,0 +1,9 @@
+*.sqlite
+*.qdstrm
+*.qdrep
+*.nsys-rep
+/data
+/data_
+/.conda
+/model
+/__pycache__
