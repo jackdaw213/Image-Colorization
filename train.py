@@ -10,7 +10,6 @@ def train_epoch(model, optimizer, loss_func, loader, device):
     model.train()
 
     epoch_loss = torchmetrics.MeanMetric().to(device)
-    scaler = torch.cuda.amp.GradScaler()
 
     for black, color in loader:
         black, color = black.to(device), color.to(device)

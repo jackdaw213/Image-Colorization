@@ -37,23 +37,27 @@ def l_ab_to_rgb(l, ab):
     img = lab2rgb(img.permute(1, 2, 0))
     return img
 
+def rgb_to_l_ab(image_path):
+    img = torch.from_numpy(rgb2lab(read_image(image_path).permute(1, 2, 0))).permute(2, 0, 1)
+    ab = img[1:, :, :]
+    l = img[0, :, :].unsqueeze(0)
+    return l, ab
+
 def test_learnability(model, learning_rate, image_path, n_epochs):
     device = torch.device("cpu")
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
         torch.cuda.set_device(device)
 
-    img = torch.from_numpy(rgb2lab(read_image(image_path).permute(1, 2, 0))).permute(2, 0, 1).float()
-    ab = img[1:, :, :]
-    l = img[0, :, :].unsqueeze(0)
-    ab = ab.unsqueeze(0).cuda()
-    l = l.unsqueeze(0).cuda()
+    l, ab = rgb_to_l_ab(image_path)
+    ab = ab.unsqueeze(0).float().cuda()
+    l = l.unsqueeze(0).float().cuda()
 
     epoch_loss = torchmetrics.MeanMetric().to(device)
 
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    loss = nn.MSELoss().cuda()
+    loss_func = nn.MSELoss().cuda()
 
     train_list = []
 
@@ -61,13 +65,13 @@ def test_learnability(model, learning_rate, image_path, n_epochs):
     for epoch in tq.tqdm(range(n_epochs), total=n_epochs, desc='Epochs'):
     
         output = model(l)
-        _loss = loss(output, ab)
+        loss = loss_func(output, ab)
 
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
 
-        epoch_loss(_loss)
+        epoch_loss(loss)
         train_list.append(epoch_loss.compute().cpu())
 
     model.eval()
