@@ -1,12 +1,17 @@
+import os
+import shutil
+import sys
 import torch
+import torch.nn as nn
+import torchmetrics
+from torchvision.io import read_image
 import matplotlib.pyplot as plt
 from skimage.color import lab2rgb
 from skimage.color import rgb2lab
-from torchvision.io import read_image
 import tqdm as tq
-import torch.nn as nn
-import torchmetrics
 from PIL import Image
+
+
 
 def compare_img(img, size=(15, 15)):
     inp, out, ground = img
@@ -32,7 +37,7 @@ def l_ab_to_rgb(l, ab):
     img = lab2rgb(img.permute(1, 2, 0))
     return img
 
-def test_learnability(model, image_path, n_epochs):
+def test_learnability(model, learning_rate, image_path, n_epochs):
     device = torch.device("cpu")
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
@@ -47,8 +52,9 @@ def test_learnability(model, image_path, n_epochs):
     epoch_loss = torchmetrics.MeanMetric().to(device)
 
     model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     loss = nn.MSELoss().cuda()
+    scaler = torch.cuda.amp.GradScaler()
 
     train_list = []
 
@@ -58,8 +64,9 @@ def test_learnability(model, image_path, n_epochs):
             output = model(l)
             _loss = loss(output, ab)
 
-        _loss.backward()
-        optimizer.step()
+        scaler.scale(_loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
         optimizer.zero_grad()
 
         epoch_loss(_loss)
@@ -71,8 +78,72 @@ def test_learnability(model, image_path, n_epochs):
         result = l_ab_to_rgb(l.cpu(), out.cpu())
         ground = l_ab_to_rgb(l.cpu(), ab.cpu())
 
-        compare_img((Image.open("img/in/0bbRiP.jpg"), result, ground))
+        compare_img((Image.open(image_path), result, ground))
 
     plt.plot(train_list, label='train_loss')
     plt.legend()
     plt.show()
+
+def interference(model, image_path):
+    device = torch.device("cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda:0")
+        torch.cuda.set_device(device)
+
+    img = torch.from_numpy(rgb2lab(read_image(image_path).permute(1, 2, 0))).permute(2, 0, 1).float()
+    ab = img[1:, :, :]
+    l = img[0, :, :].unsqueeze(0)
+    ab = ab.unsqueeze(0).cuda()
+    l = l.unsqueeze(0).cuda()
+
+    model.to(device)
+    loss = nn.MSELoss().cuda()
+    model.eval()
+
+    with torch.no_grad():
+        out = model(l)
+        result = l_ab_to_rgb(l.cpu(), out.cpu())
+        ground = l_ab_to_rgb(l.cpu(), ab.cpu())
+
+        compare_img((Image.open(image_path), result, ground))
+
+
+def save_train_state(model, optimizer, train_list, val_list, epoch, path, checkpoint=False):
+    path_bak = path + ".bak"
+
+    if os.path.isfile(path_bak):
+        os.remove(path_bak)
+
+    if os.path.isfile(path): 
+        shutil.copy2(path, path_bak)
+
+    if checkpoint:
+        path = path + ".epoch" + str(epoch + 1)
+
+    torch.save({
+    'model': model.state_dict(),
+    'optimizer': optimizer.state_dict(),
+    'train_list': train_list,
+    'val_list': val_list,
+    'epoch': epoch
+    }, path)
+
+def load_train_state(path, model_only=False):
+    try:
+        state = torch.load(path)
+        if not model_only:
+            return state["model"], state["optimizer"], state["train_list"], state["val_list"], state["epoch"]
+        else:
+            return state["model"]
+    except Exception as e:
+        print(e)
+        print("Error encounted when trying to load train state, trying backup")
+        try:
+            torch.load(path + ".bak")
+            if not model_only:
+                return state["model"], state["optimizer"], state["train_list"], state["val_list"], state["epoch"]
+            else:
+                return state["model"]
+        except:
+            print(e)
+            sys.exit("Backup train state failed, existing")
