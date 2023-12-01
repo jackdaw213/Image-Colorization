@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 from skimage.color import lab2rgb
 from skimage.color import rgb2lab
 import tqdm as tq
-from PIL import Image
 
 def compare_img(img, size=(20, 6)):
     inp, out, ground = img
@@ -38,8 +37,8 @@ def l_ab_to_rgb(l, ab):
 def rgb_to_l_ab(image_path):
     img = torch.from_numpy(rgb2lab(read_image(image_path).permute(1, 2, 0))).permute(2, 0, 1)
     ab = img[1:, :, :]
-    l = img[0, :, :].unsqueeze(0) # To add the channels dimension 
-    return l, ab # channels, height, width
+    l = img[0, :, :].unsqueeze(0) # Add the channels dimension 
+    return l, ab
 
 def concat_l_and_to_rgb(l, ab_shape):
     l = torch.cat([l, torch.zeros(ab_shape)], 0)

@@ -23,18 +23,18 @@ class CAE(nn.Module):
         self.out = ap.OutConv(32, 2)
 
     def forward(self, x):
-        r1_e_m, r1_e_d = self.e1(x)
-        r2_e_m, r2_e_d = self.e2(r1_e_d)
-        r3_e_m, r3_e_d = self.e3(r2_e_d)
-        r4_e_m, r4_e_d = self.e4(r3_e_d)
-        r5_e_m, r5_e_d = self.e5(r4_e_d)
+        r1_e_f, r1_e_d = self.e1(x)
+        r2_e_f, r2_e_d = self.e2(r1_e_d)
+        r3_e_f, r3_e_d = self.e3(r2_e_d)
+        r4_e_f, r4_e_d = self.e4(r3_e_d)
+        r5_e_f, r5_e_d = self.e5(r4_e_d)
 
         ls1 = self.ls(r5_e_d)
 
-        r5_d = self.d5(ls1, r5_e_m)
-        r4_d = self.d4(r5_d, r4_e_m)
-        r3_d = self.d3(r4_d, r3_e_m)
-        r2_d = self.d2(r3_d, r2_e_m)
-        r1_d = self.d1(r2_d, r1_e_m)
+        r5_d = self.d5(ls1, r5_e_f)
+        r4_d = self.d4(r5_d, r4_e_f)
+        r3_d = self.d3(r4_d, r3_e_f)
+        r2_d = self.d2(r3_d, r2_e_f)
+        r1_d = self.d1(r2_d, r1_e_f)
 
         return self.out(r1_d)

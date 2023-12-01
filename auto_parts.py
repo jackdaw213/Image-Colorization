@@ -14,16 +14,20 @@ class EncoderBlock(nn.Module):
             nn.Dropout2d(0.1)
         )
     def forward(self, inp):
-        mask = self.seq(inp)
-        down = torch.nn.functional.max_pool2d(mask, kernel_size=2)
-        return mask, down
+        features = self.seq(inp)
+        down = torch.nn.functional.max_pool2d(features, kernel_size=2)
+        # Features is for concatenating with the decoder blocks
+        # Down is for the next encoder block
+        return features, down 
 
 class DecoderBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, padding=1):
         super().__init__()
+        # Upscale and half the number of features
         self.trans_conv = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.seq = nn.Sequential(
-            
+            # so that when we concat the encoder block's features
+            # the amount of input features stays the same
             nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
@@ -35,9 +39,12 @@ class DecoderBlock(nn.Module):
     def forward(self, inp, con_channels):
         up = self.trans_conv(inp)
 
+        # We need to pad the mask when we concatenating
+        # upscaled features that were previously 
+        # downscaled from odd dimension features
+        # For example: 25 -> down -> 12 -> up -> 24 -> pad -> 25
         diffY = con_channels.size()[2] - up.size()[2]
         diffX = con_channels.size()[3] - up.size()[3]
-
         up = torch.nn.functional.pad(up, [diffX // 2, diffX - diffX // 2,
                                           diffY // 2, diffY - diffY // 2])
         

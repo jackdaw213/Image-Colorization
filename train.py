@@ -66,7 +66,7 @@ def train_model(model, optimizer, loss, train_loader, val_loader, epochs, back_u
         train_list = train_list_
         val_list = val_list_
         init_epoch = epoch_
-        total_epoch = total_epoch + epoch_
+        total_epoch = total_epoch + epoch_ # Add ran epochs to the total amount
     
 
     for epoch in tq.tqdm(range(epochs), total=total_epoch, desc='Epochs', initial=init_epoch):
