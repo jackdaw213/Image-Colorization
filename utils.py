@@ -54,19 +54,17 @@ def test_learnability(model, learning_rate, image_path, n_epochs):
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     loss = nn.MSELoss().cuda()
-    scaler = torch.cuda.amp.GradScaler()
 
     train_list = []
 
     model.train()
     for epoch in tq.tqdm(range(n_epochs), total=n_epochs, desc='Epochs'):
-        with torch.cuda.amp.autocast():
-            output = model(l)
-            _loss = loss(output, ab)
+    
+        output = model(l)
+        _loss = loss(output, ab)
 
-        scaler.scale(_loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
+        loss.backward()
+        optimizer.step()
         optimizer.zero_grad()
 
         epoch_loss(_loss)
