@@ -13,7 +13,7 @@ torch.backends.cuda.matmul.allow_tf32 = True
 #nvidia_dlprof_pytorch_nvtx.init()
 
 NUM_EPOCHS = 300
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 
 print("Importing dataset")
 train_dataset = dataset.ColorDataset('data/train')

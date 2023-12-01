@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from skimage.color import lab2rgb
 from skimage.color import rgb2lab
 import tqdm as tq
+import numpy as np
 
 def compare_img(img, size=(20, 6)):
     inp, out, ground = img
@@ -26,6 +27,23 @@ def compare_img(img, size=(20, 6)):
     plt.subplot(1, 3, 3)
     plt.imshow(ground)
     plt.title("Ground")
+
+    plt.show()
+
+def compare_img_table(image_list, size=(20, 20)):
+    plt.figure(figsize=size)
+
+    for i in range(len(image_list)):
+        inp, out, ground = image_list[i]
+
+        plt.subplot(8, 3, i * 2 + 1 + i)
+        plt.imshow(inp)
+
+        plt.subplot(8, 3, i * 2 + 2 + i)
+        plt.imshow(out)
+
+        plt.subplot(8, 3, i * 2 + 3 + i)
+        plt.imshow(ground)
 
     plt.show()
 
@@ -90,6 +108,25 @@ def test_learnability(model, learning_rate, image_path, n_epochs):
     plt.legend()
     plt.show()
 
+def test_trained_model(model, test_images_path, num_samples=8):
+    images = os.listdir(test_images_path)
+    selected_images = np.random.choice(images, num_samples, replace=False)
+    image_list = []
+    for image_name in selected_images:   
+        image_path = os.path.join(test_images_path, image_name) 
+        l, ab = rgb_to_l_ab(image_path)
+        ab = ab.unsqueeze(0).float()
+        l = l.unsqueeze(0).float()
+        model.eval()
+        with torch.no_grad():
+            out = model(l)
+            l = l.squeeze(0)
+            out = out.squeeze(0)
+            ab = ab.squeeze(0)
+            image_list.append((concat_l_and_to_rgb(l, ab.shape), l_ab_to_rgb(l, out), l_ab_to_rgb(l, ab)))
+    compare_img_table(image_list)      
+            
+            
 def save_train_state(model, optimizer, train_list, val_list, epoch, path, checkpoint=False):
     path_bak = path + ".bak"
 
