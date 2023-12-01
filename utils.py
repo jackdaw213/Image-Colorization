@@ -11,9 +11,7 @@ from skimage.color import rgb2lab
 import tqdm as tq
 from PIL import Image
 
-
-
-def compare_img(img, size=(15, 15)):
+def compare_img(img, size=(20, 6)):
     inp, out, ground = img
 
     plt.figure(figsize=size)
@@ -33,15 +31,19 @@ def compare_img(img, size=(15, 15)):
     plt.show()
 
 def l_ab_to_rgb(l, ab):
-    img = torch.cat([l.squeeze(0), ab.squeeze(0)], 0)
+    img = torch.cat([l, ab], 0)
     img = lab2rgb(img.permute(1, 2, 0))
     return img
 
 def rgb_to_l_ab(image_path):
     img = torch.from_numpy(rgb2lab(read_image(image_path).permute(1, 2, 0))).permute(2, 0, 1)
     ab = img[1:, :, :]
-    l = img[0, :, :].unsqueeze(0)
-    return l, ab
+    l = img[0, :, :].unsqueeze(0) # To add the channels dimension 
+    return l, ab # channels, height, width
+
+def concat_l_and_to_rgb(l, ab_shape):
+    l = torch.cat([l, torch.zeros(ab_shape)], 0)
+    return lab2rgb(l.permute(1, 2, 0))
 
 def test_learnability(model, learning_rate, image_path, n_epochs):
     device = torch.device("cpu")
@@ -77,38 +79,17 @@ def test_learnability(model, learning_rate, image_path, n_epochs):
     model.eval()
     with torch.no_grad():
         out = model(l)
-        result = l_ab_to_rgb(l.cpu(), out.cpu())
-        ground = l_ab_to_rgb(l.cpu(), ab.cpu())
+        l = l.cpu().squeeze(0)
+        out = out.cpu().squeeze(0)
+        ab = ab.cpu().squeeze(0)
+        result = l_ab_to_rgb(l, out)
+        ground = l_ab_to_rgb(l, ab)
 
-        compare_img((Image.open(image_path), result, ground))
+        compare_img((concat_l_and_to_rgb(l, ab.shape), result, ground))
 
     plt.plot(train_list, label='train_loss')
     plt.legend()
     plt.show()
-
-def interference(model, image_path):
-    device = torch.device("cpu")
-    if torch.cuda.is_available():
-        device = torch.device("cuda:0")
-        torch.cuda.set_device(device)
-
-    img = torch.from_numpy(rgb2lab(read_image(image_path).permute(1, 2, 0))).permute(2, 0, 1).float()
-    ab = img[1:, :, :]
-    l = img[0, :, :].unsqueeze(0)
-    ab = ab.unsqueeze(0).cuda()
-    l = l.unsqueeze(0).cuda()
-
-    model.to(device)
-    loss = nn.MSELoss().cuda()
-    model.eval()
-
-    with torch.no_grad():
-        out = model(l)
-        result = l_ab_to_rgb(l.cpu(), out.cpu())
-        ground = l_ab_to_rgb(l.cpu(), ab.cpu())
-
-        compare_img((Image.open(image_path), result, ground))
-
 
 def save_train_state(model, optimizer, train_list, val_list, epoch, path, checkpoint=False):
     path_bak = path + ".bak"
