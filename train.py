@@ -15,7 +15,6 @@ def train_epoch(model, optimizer, loss_func, loader, device):
     for black, color in loader:
         black, color = black.to(device), color.to(device)
 
-        #with torch.cuda.amp.autocast():
         output = model(black)
         loss = loss_func(output, color)
 
