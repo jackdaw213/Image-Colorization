@@ -16,8 +16,8 @@ NUM_EPOCHS = 300
 BATCH_SIZE = 64
 
 print("Importing dataset")
-train_dataset = dataset.ColorDataset('data/train', 'data/train')
-val_dataset = dataset.ColorDataset('data/train', 'data/train')
+train_dataset = dataset.ColorDataset('data/train')
+val_dataset = dataset.ColorDataset('data/val')
 
 print("Init dataloader")
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
