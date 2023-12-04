@@ -1,6 +1,7 @@
 import os
 import shutil
 import sys
+import random
 import torch
 import torch.nn as nn
 import torchmetrics
@@ -10,6 +11,7 @@ from skimage.color import lab2rgb
 from skimage.color import rgb2lab
 import tqdm as tq
 import numpy as np
+import auto_parts
 
 def compare_img(img, size=(20, 6)):
     inp, out, ground = img
@@ -30,19 +32,22 @@ def compare_img(img, size=(20, 6)):
 
     plt.show()
 
-def compare_img_table(image_list, size=(20, 20)):
+def compare_img_table(image_list, num_samples, size=(20, 20)):
     plt.figure(figsize=size)
-
+    plt.rcParams['figure.dpi'] = 120
     for i in range(len(image_list)):
         inp, out, ground = image_list[i]
 
-        plt.subplot(8, 3, i * 2 + 1 + i)
+        plt.subplot(num_samples, 3, i * 2 + 1 + i)
+        plt.axis('off') 
         plt.imshow(inp)
 
-        plt.subplot(8, 3, i * 2 + 2 + i)
+        plt.subplot(num_samples, 3, i * 2 + 2 + i)
+        plt.axis('off') 
         plt.imshow(out)
 
-        plt.subplot(8, 3, i * 2 + 3 + i)
+        plt.subplot(num_samples, 3, i * 2 + 3 + i)
+        plt.axis('off') 
         plt.imshow(ground)
 
     plt.show()
@@ -76,7 +81,7 @@ def test_learnability(model, learning_rate, image_path, n_epochs):
 
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    loss_func = nn.MSELoss().cuda()
+    loss_func = auto_parts.SmoothL1Loss().cuda()
 
     train_list = []
 
@@ -124,8 +129,7 @@ def test_trained_model(model, test_images_path, num_samples=8):
             out = out.squeeze(0)
             ab = ab.squeeze(0)
             image_list.append((concat_l_and_to_rgb(l, ab.shape), l_ab_to_rgb(l, out), l_ab_to_rgb(l, ab)))
-    compare_img_table(image_list)      
-            
+    compare_img_table(image_list, num_samples)              
             
 def save_train_state(model, optimizer, train_list, val_list, epoch, path, checkpoint=False):
     path_bak = path + ".bak"
@@ -166,3 +170,43 @@ def load_train_state(path, model_only=False):
         except:
             print(e)
             sys.exit("Backup train state failed, existing")
+
+def split_images(input_folder, output_folder, train_ratio=0.8, val_ratio=0.15, test_ratio=0.05):
+    if train_ratio + val_ratio + test_ratio != 1:
+        raise ValueError("Ratio sum must be 1")
+    # Create output folders if they don't exist
+    train_folder = os.path.join(output_folder, 'train')
+    val_folder = os.path.join(output_folder, 'val')
+    test_folder = os.path.join(output_folder, 'test')
+
+    os.makedirs(train_folder, exist_ok=True)
+    os.makedirs(val_folder, exist_ok=True)
+    os.makedirs(test_folder, exist_ok=True)
+
+    # Get a list of all image files in the input folder
+    image_files = [f for f in os.listdir(input_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+
+    # Shuffle the list of image files
+    random.shuffle(image_files)
+
+    # Calculate the number of images for each set
+    total_images = len(image_files)
+    train_count = int(total_images * train_ratio)
+    val_count = int(total_images * val_ratio)
+    test_count = total_images - train_count - val_count
+
+    # Copy images to the corresponding folders
+    for i, image_file in enumerate(image_files):
+        source_path = os.path.join(input_folder, image_file)
+
+        if i < train_count:
+            destination_folder = train_folder
+        elif i < train_count + val_count:
+            destination_folder = val_folder
+        else:
+            destination_folder = test_folder
+
+        destination_path = os.path.join(destination_folder, image_file)
+        shutil.copy(source_path, destination_path)
+
+    print(f"Splitting complete. Train: {train_count}, Val: {val_count}, Test: {test_count}")

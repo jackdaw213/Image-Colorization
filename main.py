@@ -6,6 +6,7 @@ import nvidia_dlprof_pytorch_nvtx
 import dataset
 import model
 import train
+import auto_parts
 
 torch.backends.cudnn.allow_tf32 = True
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -25,8 +26,8 @@ val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=True, num_wo
 
 model = model.CAE()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-loss = nn.MSELoss()
-
+#loss = nn.MSELoss()
+loss = auto_parts.HuberLoss().cuda()
 #torchinfo.summary(model, (1, 224, 224), batch_dim = 0, col_names = ('input_size', 'output_size', 'num_params', 'kernel_size', 'mult_adds'), verbose = 1)
 
 print("Training...")
