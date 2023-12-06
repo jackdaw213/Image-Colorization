@@ -63,9 +63,8 @@ class CUNet(nn.Module):
         r3_e_f, r3_e_d = self.e3(r2_e_d)
 
         ec1 = self.ec1(r3_e_d)
-        ec2 = self.ec2(ec1)
 
-        r3_d = self.d3(ec2, r3_e_f)
+        r3_d = self.d3(ec1, r3_e_f)
         r2_d = self.d2(r3_d, r2_e_f)
         r1_d = self.d1(r2_d, r1_e_f)
 
