@@ -81,7 +81,7 @@ def test_learnability(model, learning_rate, image_path, n_epochs):
 
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    loss_func = auto_parts.SmoothL1Loss().cuda()
+    loss_func = auto_parts.HuberLoss().cuda()
 
     train_list = []
 
@@ -210,3 +210,26 @@ def split_images(input_folder, output_folder, train_ratio=0.8, val_ratio=0.15, t
         shutil.copy(source_path, destination_path)
 
     print(f"Splitting complete. Train: {train_count}, Val: {val_count}, Test: {test_count}")
+
+def create_small_dataset(original_folder, target_folder, split_ratio=0.1):
+    # Create target folder if it doesn't exist
+    if not os.path.exists(target_folder):
+        os.makedirs(target_folder)
+
+    # List all files in the original dataset folder
+    all_files = os.listdir(original_folder)
+
+    # Calculate the number of files to keep for both training and validation
+    num_files = len(all_files)
+    num_files = int(num_files * split_ratio)
+
+    # Randomly sample files for validation
+    small_files = random.sample(all_files, num_files)
+
+    # Copy validation files to the target folder
+    for file_name in small_files:
+        source_path = os.path.join(original_folder, file_name)
+        target_path = os.path.join(target_folder, file_name)
+        shutil.copyfile(source_path, target_path)
+
+
