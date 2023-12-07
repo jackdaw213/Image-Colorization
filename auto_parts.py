@@ -24,7 +24,7 @@ class DecoderBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, padding=1):
         super().__init__()
         # Upscale and half the number of features
-        self.trans_conv = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
+        self.trans_conv = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=3, stride=2)
         self.seq = nn.Sequential(
             # so that when we concat the encoder block's features
             # the amount of input features stays the same
