@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import utils
 
 class EncoderBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, padding=1):
@@ -39,14 +40,7 @@ class DecoderBlock(nn.Module):
     def forward(self, inp, con_channels):
         up = self.trans_conv(inp)
 
-        # We need to pad the mask when we concatenating
-        # upscaled features that were previously 
-        # downscaled from odd dimension features
-        # For example: 25 -> down -> 12 -> up -> 24 -> pad -> 25
-        diffY = con_channels.size()[2] - up.size()[2]
-        diffX = con_channels.size()[3] - up.size()[3]
-        up = torch.nn.functional.pad(up, [diffX // 2, diffX - diffX // 2,
-                                          diffY // 2, diffY - diffY // 2])
+        up = utils.pad_fetures(up, con_channels)
         
         cat = torch.cat([up, con_channels], dim=1)
         return self.seq(cat)
@@ -66,13 +60,40 @@ class LatentSpace(nn.Module):
     def forward(self, inp):
         return self.seq(inp)
 
+class HyperConnections(nn.Module):
+    def __init__(self, channels, kernel_size=3, padding=1):
+        super().__init__()
+        self.seq = nn.Sequential(
+            nn.Conv2d(channels * 4, channels * 2, kernel_size=kernel_size, padding=padding),
+            nn.BatchNorm2d(channels * 2),
+            nn.ReLU(),
+            nn.Conv2d(channels * 2, channels, kernel_size=kernel_size, padding=padding),
+            nn.BatchNorm2d(channels),
+            nn.ReLU(),
+            nn.Conv2d(channels, channels, kernel_size=kernel_size, padding=padding),
+            nn.BatchNorm2d(channels),
+            nn.ReLU(),
+            nn.Dropout2d(0.1)
+        )
+        self.up_conv = nn.ConvTranspose2d(channels * 2, channels, kernel_size=3, stride=2)
+    def forward(self, inp, equiv_features, e_features, d_features):
+        e_features = self.up_conv(e_features)
+        d_features = self.up_conv(d_features)
+
+        e_features = utils.pad_fetures(e_features, equiv_features)
+        d_features = utils.pad_fetures(d_features, equiv_features)
+
+        cat = torch.cat([inp, equiv_features, e_features, d_features], dim=1)
+
+        return self.seq(cat)
+    
 class OutConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.seq = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=1, padding=0),
             nn.BatchNorm2d(out_channels),
-            nn.Tanh()
+            nn.ReLU()
         )
     def forward(self, inp):
         return self.seq(inp)

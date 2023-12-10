@@ -232,4 +232,13 @@ def create_small_dataset(original_folder, target_folder, split_ratio=0.1):
         target_path = os.path.join(target_folder, file_name)
         shutil.copyfile(source_path, target_path)
 
-
+def pad_fetures(up, con_channels):
+    # We need to pad the mask when we concatenating
+    # upscaled features that were previously 
+    # downscaled from odd dimension features
+    # For example: 25 -> down -> 12 -> up -> 24 -> pad -> 25
+    diffY = con_channels.size()[2] - up.size()[2]
+    diffX = con_channels.size()[3] - up.size()[3]
+    up = torch.nn.functional.pad(up, [diffX // 2, diffX - diffX // 2,
+                                    diffY // 2, diffY - diffY // 2])
+    return up
