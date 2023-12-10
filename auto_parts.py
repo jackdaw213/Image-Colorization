@@ -60,6 +60,7 @@ class LatentSpace(nn.Module):
     def forward(self, inp):
         return self.seq(inp)
 
+#https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9604844/#sec3dot2-jimaging-08-00269
 class HyperConnections(nn.Module):
     def __init__(self, channels, kernel_size=3, padding=1):
         super().__init__()
