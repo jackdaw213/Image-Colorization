@@ -37,7 +37,7 @@ class UNet(nn.Module):
 
         hc1 = self.hc(r1_d, r1_e_f, r2_e_f, r2_d)
 
-        return self.out(r1_d)
+        return self.out(hc1)
     
     def _initialize_weights(self):
         for m in self.modules():
