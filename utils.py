@@ -130,7 +130,14 @@ def test_trained_model(model, test_images_path, num_samples=8):
             ab = ab.squeeze(0)
             image_list.append((concat_l_and_to_rgb(l, ab.shape), l_ab_to_rgb(l, out), l_ab_to_rgb(l, ab)))
     compare_img_table(image_list, num_samples)              
-            
+
+def plot_loss_history(state_file):
+    state = torch.load(state_file)
+    plt.plot(state["train_list"], label='train_loss')
+    plt.plot(state["val_list"],label='val_loss')
+    plt.legend()
+    plt.show()
+
 def save_train_state(model, optimizer, train_list, val_list, epoch, path, checkpoint=False):
     path_bak = path + ".bak"
 
@@ -151,22 +158,16 @@ def save_train_state(model, optimizer, train_list, val_list, epoch, path, checkp
     'epoch': epoch
     }, path)
 
-def load_train_state(path, model_only=False):
+def load_train_state(path):
     try:
         state = torch.load(path)
-        if not model_only:
-            return state["model"], state["optimizer"], state["train_list"], state["val_list"], state["epoch"]
-        else:
-            return state["model"]
+        return state["model"], state["optimizer"], state["train_list"], state["val_list"], state["epoch"]
     except Exception as e:
         print(e)
         print("Error encounted when trying to load train state, trying backup")
         try:
             torch.load(path + ".bak")
-            if not model_only:
-                return state["model"], state["optimizer"], state["train_list"], state["val_list"], state["epoch"]
-            else:
-                return state["model"]
+            return state["model"], state["optimizer"], state["train_list"], state["val_list"], state["epoch"]
         except:
             print(e)
             sys.exit("Backup train state failed, existing")
