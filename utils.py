@@ -138,7 +138,7 @@ def plot_loss_history(state_file):
     plt.legend()
     plt.show()
 
-def save_train_state(model, optimizer, train_list, val_list, epoch, path, checkpoint=False):
+def save_train_state(model, optimizer, epoch, path, checkpoint=False):
     path_bak = path + ".bak"
 
     if os.path.isfile(path_bak):
@@ -153,21 +153,19 @@ def save_train_state(model, optimizer, train_list, val_list, epoch, path, checkp
     torch.save({
     'model': model.state_dict(),
     'optimizer': optimizer.state_dict(),
-    'train_list': train_list,
-    'val_list': val_list,
     'epoch': epoch
     }, path)
 
 def load_train_state(path):
     try:
         state = torch.load(path)
-        return state["model"], state["optimizer"], state["train_list"], state["val_list"], state["epoch"]
+        return state["model"], state["optimizer"], state["epoch"]
     except Exception as e:
         print(e)
         print("Error encounted when trying to load train state, trying backup")
         try:
             torch.load(path + ".bak")
-            return state["model"], state["optimizer"], state["train_list"], state["val_list"], state["epoch"]
+            return state["model"], state["optimizer"], state["epoch"]
         except:
             print(e)
             sys.exit("Backup train state failed, existing")

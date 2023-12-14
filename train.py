@@ -1,7 +1,7 @@
 import torch
 import tqdm as tq
 import torchmetrics
-from matplotlib import pyplot as plt
+import wandb
 
 import utils
 
@@ -42,7 +42,7 @@ def val_epoch(model, loss_func, loader, device):
 
     return epoch_loss.compute()
 
-def train_model(model, optimizer, loss, train_loader, val_loader, epochs, back_up_freq=10, checkpoint_freq=100, load_from_state=False):
+def train_model(model, optimizer, loss, train_loader, val_loader, project_name, epochs, back_up_freq=10, checkpoint_freq=100, load_from_state=False):
                 
     device = torch.device("cpu")
     if torch.cuda.is_available():
@@ -56,27 +56,31 @@ def train_model(model, optimizer, loss, train_loader, val_loader, epochs, back_u
 
     cmodel = torch.compile(model)
     cmodel.to(device)
-    train_list = []
-    val_list = []
     loss.to(device)
 
+    config = {
+    "model": model.__class__.__name__,
+    "optimizer": optimizer.__class__.__name__,
+    "loss": loss.__class__.__name__,
+    "learning_rate": optimizer.param_groups[0]['lr'],
+    "momentum": optimizer.param_groups[0]['momentum'],
+    }
+    
+    run = wandb.init(project=project_name, config=config)
+
     if load_from_state:
-        model_, optimizer_, train_list_, val_list_, epoch_ = utils.load_train_state("model/train.state")
+        model_, optimizer_, epoch_ = utils.load_train_state("model/train.state")
         model.load_state_dict(model_)
         cmodel = torch.compile(model)
         optimizer.load_state_dict(optimizer_)
-        train_list = train_list_
-        val_list = val_list_
         init_epoch = epoch_
         total_epoch = total_epoch + epoch_ # Add ran epochs to the total amount
         
 
     for epoch in tq.tqdm(range(epochs), total=total_epoch, desc='Epochs', initial=init_epoch):
         train_loss = train_epoch(cmodel, optimizer, loss, train_loader, device)
-        train_list.append(train_loss.cpu())
-                
         val_loss = val_epoch(cmodel, loss, val_loader, device)
-        val_list.append(val_loss.cpu())
+        wandb.log({"loss": train_loss, "loss_val": val_loss, "epoch": epoch})
 
         count = count + 1
         checkpoint_count = checkpoint_count + 1 
@@ -84,13 +88,9 @@ def train_model(model, optimizer, loss, train_loader, val_loader, epochs, back_u
             count = 0
             if checkpoint_count == checkpoint_freq:
                 print("Save checkpoint at epoch: ", epoch + 1)
-                utils.save_train_state(model, optimizer, train_list, val_list, epoch, "model/train.state", True)
+                utils.save_train_state(model, optimizer, epoch, "model/train.state", True)
                 checkpoint_count = 0
             else:
                 print("Save train state at epoch: ", epoch + 1)
-                utils.save_train_state(model, optimizer, train_list, val_list, epoch, "model/train.state")
-
-    plt.plot(train_list, label='train_loss')
-    plt.plot(val_list,label='val_loss')
-    plt.legend()
-    plt.show()
+                utils.save_train_state(model, optimizer, epoch, "model/train.state")
+    run.finish()
