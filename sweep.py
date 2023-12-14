@@ -27,14 +27,21 @@ def build_model():
     return model.cuda()
 
 def build_loader(batch_size):
-    train_dataset = dataset.ColorDataset('data/train_small3', True)
+    train_dataset = dataset.ColorDataset('data/train_color', True)
     train_loader = DataLoader(
         train_dataset, 
         batch_size=batch_size, 
         shuffle=True, 
         num_workers=4, 
         pin_memory=True)
-    return train_loader
+    val_dataset = dataset.ColorDataset('data/val_color')
+    val_loader = DataLoader(
+        val_dataset, 
+        batch_size=BATCH_SIZE, 
+        shuffle=True, 
+        num_workers=4, 
+        pin_memory=True)
+    return train_loader, val_loader
 
 def train(config=None):
     # Initialize a new wandb run
@@ -45,12 +52,13 @@ def train(config=None):
 
         loss = auto_parts.HuberLoss().cuda()
         model = build_model()
-        loader = build_loader(BATCH_SIZE)
+        train, val = build_loader(BATCH_SIZE)
         optimizer = build_optimizer(model, config)
 
         for epoch in tq.tqdm(range(EPOCHS), total=EPOCHS, desc='Epochs'):
-            avg_loss = train_module.train_epoch(model, optimizer, loss, loader, "cuda:0")
-            wandb.log({"loss": avg_loss, "epoch": epoch})           
+            avg_loss = train_module.train_epoch(model, optimizer, loss, train, "cuda:0")  
+            val_loss = train_module.val_epoch(model, loss, val, "cuda:0")
+            wandb.log({"loss": avg_loss, "loss_val": val_loss, "epoch": epoch})
 
 wandb.login()
 
