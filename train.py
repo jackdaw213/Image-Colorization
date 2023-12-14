@@ -52,7 +52,6 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
     count = 0
     checkpoint_count = 0
     init_epoch = 0
-    total_epoch = epochs
 
     cmodel = torch.compile(model)
     cmodel.to(device)
@@ -74,23 +73,21 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
         cmodel = torch.compile(model)
         optimizer.load_state_dict(optimizer_)
         init_epoch = epoch_
-        total_epoch = total_epoch + epoch_ # Add ran epochs to the total amount
         
-
-    for epoch in tq.tqdm(range(epochs), total=total_epoch, desc='Epochs', initial=init_epoch):
+    for epoch in tq.tqdm(range(init_epoch, epochs), total=epochs, desc='Epochs', initial=init_epoch):
         train_loss = train_epoch(cmodel, optimizer, loss, train_loader, device)
         val_loss = val_epoch(cmodel, loss, val_loader, device)
         wandb.log({"loss": train_loss, "loss_val": val_loss, "epoch": epoch})
-
+        
         count = count + 1
         checkpoint_count = checkpoint_count + 1 
         if count == back_up_freq:
             count = 0
             if checkpoint_count == checkpoint_freq:
-                print("Save checkpoint at epoch: ", epoch + 1)
                 utils.save_train_state(model, optimizer, epoch, "model/train.state", True)
                 checkpoint_count = 0
+                print("Saved checkpoint at epoch: ", epoch)
             else:
-                print("Save train state at epoch: ", epoch + 1)
                 utils.save_train_state(model, optimizer, epoch, "model/train.state")
+                print("Saved train state at epoch: ", epoch)
     run.finish()
