@@ -54,26 +54,28 @@ def train_model(model, optimizer, loss, train_loader, val_loader, epochs, back_u
     init_epoch = 0
     total_epoch = epochs
 
+    cmodel = torch.compile(model)
+    cmodel.to(device)
     train_list = []
     val_list = []
-    model.to(device)
     loss.to(device)
 
     if load_from_state:
         model_, optimizer_, train_list_, val_list_, epoch_ = utils.load_train_state("model/train.state")
         model.load_state_dict(model_)
+        cmodel = torch.compile(model)
         optimizer.load_state_dict(optimizer_)
         train_list = train_list_
         val_list = val_list_
         init_epoch = epoch_
         total_epoch = total_epoch + epoch_ # Add ran epochs to the total amount
-    
+        
 
     for epoch in tq.tqdm(range(epochs), total=total_epoch, desc='Epochs', initial=init_epoch):
-        train_loss = train_epoch(model, optimizer, loss, train_loader, device)
+        train_loss = train_epoch(cmodel, optimizer, loss, train_loader, device)
         train_list.append(train_loss.cpu())
                 
-        val_loss = val_epoch(model, loss, val_loader, device)
+        val_loss = val_epoch(cmodel, loss, val_loader, device)
         val_list.append(val_loss.cpu())
 
         count = count + 1
