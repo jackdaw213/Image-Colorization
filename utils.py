@@ -139,22 +139,19 @@ def plot_loss_history(state_file):
     plt.show()
 
 def save_train_state(model, optimizer, epoch, path, checkpoint=False):
-    path_bak = path + ".bak"
-
-    if os.path.isfile(path_bak):
-        os.remove(path_bak)
-
-    if os.path.isfile(path): 
-        shutil.copy2(path, path_bak)
-
-    if checkpoint:
-        path = path + ".epoch" + str(epoch + 1)
-
     torch.save({
     'model': model.state_dict(),
     'optimizer': optimizer.state_dict(),
     'epoch': epoch
     }, path)
+
+    if checkpoint:
+        path = path + ".epoch" + str(epoch + 1)
+        torch.save({
+        'model': model.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'epoch': epoch
+        }, path)
 
 def load_train_state(path):
     try:
