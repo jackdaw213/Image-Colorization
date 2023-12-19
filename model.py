@@ -18,8 +18,6 @@ class UNet(nn.Module):
         self.d2 = ap.DecoderBlock(256, 128)
         self.d1 = ap.DecoderBlock(128, 64)
 
-        self.hc = ap.HyperConnections(64)
-
         self.out = ap.OutConv(64, 2)
 
     def forward(self, x):
@@ -35,9 +33,7 @@ class UNet(nn.Module):
         r2_d = self.d2(r3_d, r2_e_f)
         r1_d = self.d1(r2_d, r1_e_f)
 
-        hc1 = self.hc(r1_d, r1_e_f, r2_e_f, r2_d)
-
-        return self.out(hc1)
+        return self.out(r1_d)
     
     def _initialize_weights(self):
         for m in self.modules():

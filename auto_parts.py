@@ -59,34 +59,6 @@ class LatentSpace(nn.Module):
         )
     def forward(self, inp):
         return self.seq(inp)
-
-#https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9604844/#sec3dot2-jimaging-08-00269
-class HyperConnections(nn.Module):
-    def __init__(self, channels, kernel_size=3, padding=1):
-        super().__init__()
-        self.seq = nn.Sequential(
-            nn.Conv2d(channels * 4, channels * 2, kernel_size=kernel_size, padding=padding),
-            nn.BatchNorm2d(channels * 2),
-            nn.ReLU(),
-            nn.Conv2d(channels * 2, channels, kernel_size=kernel_size, padding=padding),
-            nn.BatchNorm2d(channels),
-            nn.ReLU(),
-            nn.Conv2d(channels, channels, kernel_size=kernel_size, padding=padding),
-            nn.BatchNorm2d(channels),
-            nn.ReLU(),
-            nn.Dropout2d(0.1)
-        )
-        self.up_conv = nn.ConvTranspose2d(channels * 2, channels, kernel_size=3, stride=2)
-    def forward(self, inp, equiv_features, e_features, d_features):
-        e_features = self.up_conv(e_features)
-        d_features = self.up_conv(d_features)
-
-        e_features = utils.pad_fetures(e_features, equiv_features)
-        d_features = utils.pad_fetures(d_features, equiv_features)
-
-        cat = torch.cat([inp, equiv_features, e_features, d_features], dim=1)
-
-        return self.seq(cat)
     
 class OutConv(nn.Module):
     def __init__(self, in_channels, out_channels):
