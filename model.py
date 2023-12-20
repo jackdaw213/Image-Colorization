@@ -8,21 +8,20 @@ import torch.nn.functional as F
 class UNetResEncoder(nn.Module):
     def __init__(self):
         super().__init__()
-        self.resnet = torchvision.models.resnet.resnet34(weights=ResNet34_Weights.DEFAULT)
-        # Remove avgpool and fc layer
-        # This is cleaner than looping through resnet.children() imo
-        self.resnet.avgpool = nn.Identity()
-        self.resnet.fc = nn.Identity()
+        resnet = torchvision.models.resnet.resnet34(weights=ResNet34_Weights.DEFAULT)
 
-        for param in self.resnet.parameters():
+        for param in resnet.parameters():
             param.requires_grad = False
 
-        self.activation = {}
-        self.resnet.relu.register_forward_hook(self.get_activation("relu")) # Output of the input block
-        self.resnet.layer1.register_forward_hook(self.get_activation("layer1"))
-        self.resnet.layer2.register_forward_hook(self.get_activation("layer2"))
-        self.resnet.layer3.register_forward_hook(self.get_activation("layer3"))
-        self.resnet.layer4.register_forward_hook(self.get_activation("layer4"))
+        resnet_layers = []
+        resnet_layers.append(nn.Sequential(*list(resnet.children())[:3]))
+
+        for i, layer in enumerate(resnet.children(), 1):
+            if isinstance(layer, nn.Sequential):
+                resnet_layers.append(layer)
+
+        # Need to wrap this in a module list or else cuda() will not work
+        self.resnet_layers = nn.ModuleList(resnet_layers)
 
         self.ls = ap.LatentSpace(512, 1024)
 
@@ -39,18 +38,26 @@ class UNetResEncoder(nn.Module):
 
     def forward(self, x):
         inp = x
+        features_dict = {}
+
         # Input is gray scale image with 1 channel, resnet needs 3 so we need
         # to pad the image with extra 2 channels of 0
         x = nn.functional.pad(x, (0, 0, 0, 0, 1, 1), mode='constant', value=0)
-        self.resnet(x)
-        x = nn.functional.max_pool2d(self.activation["layer4"], kernel_size=2)
+
+        for i, layer in enumerate(self.resnet_layers, 0):
+            x = layer(x)
+            features_dict[f"layer{i}"] = x
+            if i == 0:
+                x = F.max_pool2d(x, kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)
+
+        x = nn.functional.max_pool2d(x, kernel_size=2)
         x = self.ls(x)
 
-        x = self.d6(x, self.activation["layer4"])
-        x = self.d5(x, self.activation["layer3"])
-        x = self.d4(x, self.activation["layer2"])
-        x = self.d3(x, self.activation["layer1"])
-        x = self.d2(x, self.activation["relu"])
+        x = self.d6(x, features_dict["layer4"])
+        x = self.d5(x, features_dict["layer3"])
+        x = self.d4(x, features_dict["layer2"])
+        x = self.d3(x, features_dict["layer1"])
+        x = self.d2(x, features_dict["layer0"])
         x = self.d1(x, inp)
 
         return self.out(x)
