@@ -52,10 +52,6 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
     count = 0
     checkpoint_count = 0
     init_epoch = 0
-
-    cmodel = torch.compile(model, mode="reduce-overhead")
-    cmodel = model
-    cmodel.to(device)
     loss.to(device)
 
     config = {
@@ -65,16 +61,19 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
     "learning_rate": optimizer.param_groups[0]['lr'],
     "momentum": optimizer.param_groups[0]['momentum'],
     }
-    
-    run = wandb.init(project=project_name, config=config)
 
     if resume_id is not None:
         model_, optimizer_, epoch_ = utils.load_train_state("model/train.state")
         model.load_state_dict(model_)
         cmodel = torch.compile(model, mode="reduce-overhead")
+        cmodel.to(device)
         optimizer.load_state_dict(optimizer_)
         init_epoch = epoch_ + 1 # PLus 1 means start at the next epoch
         run = wandb.init(project=project_name, config=config, id=resume_id, resume=True)
+    else:
+        cmodel = torch.compile(model, mode="reduce-overhead")
+        cmodel.to(device)
+        run = wandb.init(project=project_name, config=config)
 
     for epoch in tq.tqdm(range(init_epoch, epochs), total=epochs, desc='Epochs', initial=init_epoch):
         train_loss = train_epoch(cmodel, optimizer, loss, train_loader, device)
