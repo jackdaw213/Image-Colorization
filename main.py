@@ -48,4 +48,12 @@ loss = auto_parts.HuberLoss().cuda()
 
 print("Training...")
 #with torch.autograd.profiler.emit_nvtx():
-train.train_model(model, optimizer, loss, train_loader, val_loader, "Colorization", NUM_EPOCHS, 1, 5)
+train.train_model(model, 
+                  optimizer, 
+                  loss, 
+                  train_loader, 
+                  val_loader, 
+                  "Colorization", 
+                  epochs=NUM_EPOCHS, 
+                  back_up_freq=1, 
+                  checkpoint_freq=5)

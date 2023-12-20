@@ -42,7 +42,7 @@ def val_epoch(model, loss_func, loader, device):
 
     return epoch_loss.compute()
 
-def train_model(model, optimizer, loss, train_loader, val_loader, project_name, epochs, back_up_freq=10, checkpoint_freq=100, load_from_state=False):
+def train_model(model, optimizer, loss, train_loader, val_loader, project_name, epochs, back_up_freq=10, checkpoint_freq=100, resume_id=None):
                 
     device = torch.device("cpu")
     if torch.cuda.is_available():
@@ -53,7 +53,8 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
     checkpoint_count = 0
     init_epoch = 0
 
-    cmodel = torch.compile(model)
+    cmodel = torch.compile(model, mode="reduce-overhead")
+    cmodel = model
     cmodel.to(device)
     loss.to(device)
 
@@ -67,13 +68,14 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
     
     run = wandb.init(project=project_name, config=config)
 
-    if load_from_state:
+    if resume_id is not None:
         model_, optimizer_, epoch_ = utils.load_train_state("model/train.state")
         model.load_state_dict(model_)
-        cmodel = torch.compile(model)
+        cmodel = torch.compile(model, mode="reduce-overhead")
         optimizer.load_state_dict(optimizer_)
-        init_epoch = epoch_
-        
+        init_epoch = epoch_ + 1 # PLus 1 means start at the next epoch
+        run = wandb.init(project=project_name, config=config, id=resume_id, resume=True)
+
     for epoch in tq.tqdm(range(init_epoch, epochs), total=epochs, desc='Epochs', initial=init_epoch):
         train_loss = train_epoch(cmodel, optimizer, loss, train_loader, device)
         val_loss = val_epoch(cmodel, loss, val_loader, device)
