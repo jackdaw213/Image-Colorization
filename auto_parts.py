@@ -22,10 +22,12 @@ class EncoderBlock(nn.Module):
         return features, down 
 
 class DecoderBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1):
+    def __init__(self, in_channels, out_channels, up_in_channels=None, up_out_channels=None, kernel_size=3, padding=1):
         super().__init__()
-        # Upscale and half the number of features
-        self.trans_conv = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=3, stride=2)
+        if up_in_channels is None or up_out_channels is None:
+            up_in_channels = in_channels
+            up_out_channels = in_channels // 2 # Upscale and halve the number of features
+        self.trans_conv = nn.ConvTranspose2d(up_in_channels, up_out_channels, kernel_size=3, stride=2)
         self.seq = nn.Sequential(
             # so that when we concat the encoder block's features
             # the amount of input features stays the same
@@ -39,9 +41,7 @@ class DecoderBlock(nn.Module):
         )
     def forward(self, inp, con_channels):
         up = self.trans_conv(inp)
-
         up = utils.pad_fetures(up, con_channels)
-        
         cat = torch.cat([up, con_channels], dim=1)
         return self.seq(cat)
     

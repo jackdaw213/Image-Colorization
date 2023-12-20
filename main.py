@@ -35,8 +35,8 @@ val_loader = DataLoader(
     num_workers=4, 
     pin_memory=True)
 
-model = model.UNet()
-model._initialize_weights()
+model = model.UNetResEncoder()
+#model._initialize_weights()
 
 optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.6)
 #optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
