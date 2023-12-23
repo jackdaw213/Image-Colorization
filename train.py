@@ -51,7 +51,7 @@ def val_epoch(model, loss_func, loader, device):
 
     return epoch_loss.compute()
 
-def train_model(model, optimizer, loss, train_loader, val_loader, project_name, epochs, back_up_freq=10, checkpoint_freq=100, resume_id=None):
+def train_model(model, optimizer, loss, train_loader, val_loader, project_name, epochs, backup_freq, checkpoint_freq, resume_id):
                 
     device = torch.device("cpu")
     if torch.cuda.is_available():
@@ -91,13 +91,13 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
         
         count = count + 1
         checkpoint_count = checkpoint_count + 1 
-        if count == back_up_freq:
+        if count == backup_freq:
             count = 0
             if checkpoint_count == checkpoint_freq:
                 utils.save_train_state(model, optimizer, epoch, "model/train.state", True)
                 checkpoint_count = 0
-                print("Saved checkpoint at epoch: ", epoch)
+                print("Saved checkpoint at epoch: ", epoch + 1)
             else:
                 utils.save_train_state(model, optimizer, epoch, "model/train.state")
-                print("Saved train state at epoch: ", epoch)
+                print("Saved train state at epoch: ", epoch + 1)
     run.finish()

@@ -21,7 +21,7 @@ LEARNING_RATE = 0.005
 MOMENTUM = 0.6
 
 RESUME_ID = None
-BACK_UP_FREQ = 1
+BACKUP_FREQ = 1
 CHECKPOINT_FREQ = 5
 
 ENABLE_DALI = True
@@ -62,8 +62,8 @@ parser.add_argument('--momentum', type=float,
 parser.add_argument('--resume_id', type=str,
                     default=RESUME_ID,
                     help='Wandb run ID to resume training')
-parser.add_argument('--back_up_freq', type=int,
-                    default=BACK_UP_FREQ,
+parser.add_argument('--backup_freq', type=int,
+                    default=BACKUP_FREQ,
                     help='Frequency of model backup during training')
 parser.add_argument('--checkpoint_freq', type=int,
                     default=CHECKPOINT_FREQ,
@@ -144,6 +144,6 @@ train.train_model(model,
                   val_loader, 
                   "Colorization", 
                   epochs=args.num_epochs, 
-                  back_up_freq=args.back_up_freq if args.enable_backup else -1, 
+                  backup_freq=args.backup_freq if args.enable_backup else -1, 
                   checkpoint_freq=args.checkpoint_freq if args.enable_backup else -1, 
                   resume_id=args.resume_id)
