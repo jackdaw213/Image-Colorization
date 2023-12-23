@@ -238,3 +238,12 @@ def pad_fetures(up, con_channels):
     up = torch.nn.functional.pad(up, [diffX // 2, diffX - diffX // 2,
                                     diffY // 2, diffY - diffY // 2])
     return up
+
+# Nvidia DALI file readers needs a dummy label file to read
+# all images in a folder :vv
+def create_dummy_label_file(folder_path, output_file="labels.txt"):
+    with open(f"{folder_path}/{output_file}", 'w') as f:
+        for filename in os.listdir(folder_path):
+            if filename.endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+                label_line = f"{filename} 0\n"
+                f.write(label_line)
