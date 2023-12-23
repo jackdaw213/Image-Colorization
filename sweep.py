@@ -1,17 +1,20 @@
 import torch
 import torch.optim as optim
-import torch.nn as nn
-from torch.utils.data import DataLoader
+from nvidia.dali.plugin.pytorch import DALIGenericIterator
 import wandb
 import tqdm as tq
 
 import dataset
 import model as model_module
 import train as train_module
+import utils
 import auto_parts
 
-BATCH_SIZE = 8
+BATCH_SIZE = 32
 EPOCHS = 75
+TRAIN_DIR = "data/train"
+VAL_DIR = "data/val"
+PROJECT_NAME = "unet-resnet-sweep"
 
 def build_optimizer(model, config):
     if config.optimizer == "sgd":
@@ -21,26 +24,29 @@ def build_optimizer(model, config):
     return optimizer
 
 def build_model():
-    model = model_module.UNet()
-    model._initialize_weights()
+    model = model_module.UNetResEncoder()
     model = torch.compile(model)
     return model.cuda()
 
 def build_loader(batch_size):
-    train_dataset = dataset.ColorDataset('data/train_color', True)
-    train_loader = DataLoader(
-        train_dataset, 
-        batch_size=batch_size, 
-        shuffle=True, 
-        num_workers=4, 
-        pin_memory=True)
-    val_dataset = dataset.ColorDataset('data/val_color')
-    val_loader = DataLoader(
-        val_dataset, 
-        batch_size=BATCH_SIZE, 
-        shuffle=True, 
-        num_workers=4, 
-        pin_memory=True)
+    utils.label_file_check(TRAIN_DIR)
+    utils.label_file_check(VAL_DIR)
+
+    train_loader = DALIGenericIterator(
+    [dataset.ColorDataset.dali_pipeline(image_dir=TRAIN_DIR,
+                                        batch_size=batch_size,
+                                        num_threads=4)],
+        ['black', 'color'],
+        reader_name='Reader'
+    )
+
+    val_loader = DALIGenericIterator(
+        [dataset.ColorDataset.dali_pipeline(image_dir=VAL_DIR,
+                                            batch_size=batch_size,
+                                            num_threads=4)],
+        ['black', 'color'],
+        reader_name='Reader'
+    )
     return train_loader, val_loader
 
 def train(config=None):
@@ -79,8 +85,8 @@ sgd = {
     }
 }
 
-sweep_id = wandb.sweep(sweep=sgd, project='unet-sweep')
-wandb.agent(sweep_id, train)
+sweep_id = wandb.sweep(sweep=sgd, project=PROJECT_NAME)
+wandb.agent(sweep_id, train, project=PROJECT_NAME)
 
 adam = {
     'method': 'grid',
@@ -95,6 +101,6 @@ adam = {
     }
 }
 
-sweep_id = wandb.sweep(sweep=adam, project='unet-sweep')
+sweep_id = wandb.sweep(sweep=adam, project=PROJECT_NAME)
 wandb.agent(sweep_id, train)
 
