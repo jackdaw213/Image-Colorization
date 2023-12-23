@@ -246,3 +246,7 @@ def create_dummy_label_file(folder_path, output_file="labels.txt"):
             if filename.endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
                 label_line = f"{filename} 0\n"
                 f.write(label_line)
+
+def label_file_check(folder_path):
+    if not os.path.isfile(f"{folder_path}/labels.txt"):
+        create_dummy_label_file(folder_path)
