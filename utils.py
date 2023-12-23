@@ -3,7 +3,6 @@ import shutil
 import sys
 import random
 import torch
-import torch.nn as nn
 import torchmetrics
 from torchvision.io import read_image
 import matplotlib.pyplot as plt

@@ -12,7 +12,7 @@ def train_epoch(model, optimizer, loss_func, loader, device):
 
     epoch_loss = torchmetrics.MeanMetric().to(device)
 
-    for i, data in enumerate(loader):
+    for _, data in enumerate(loader):
         if isinstance(loader, DALIGenericIterator):
             black, color = data[0]["black"], data[0]["color"]
         else:
@@ -36,7 +36,7 @@ def val_epoch(model, loss_func, loader, device):
 
     epoch_loss = torchmetrics.MeanMetric().to(device)
 
-    for i, data in enumerate(loader):
+    for _, data in enumerate(loader):
         if isinstance(loader, DALIGenericIterator):
             black, color = data[0]["black"], data[0]["color"]
         else:
@@ -78,16 +78,16 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
         cmodel.to(device)
         optimizer.load_state_dict(optimizer_)
         init_epoch = epoch_ + 1 # PLus 1 means start at the next epoch
-        #run = wandb.init(project=project_name, config=config, id=resume_id, resume=True)
+        run = wandb.init(project=project_name, config=config, id=resume_id, resume=True)
     else:
         cmodel = torch.compile(model, mode="reduce-overhead")
         cmodel.to(device)
-        #run = wandb.init(project=project_name, config=config)
+        run = wandb.init(project=project_name, config=config)
 
     for epoch in tq.tqdm(range(init_epoch, epochs), total=epochs, desc='Epochs', initial=init_epoch):
         train_loss = train_epoch(cmodel, optimizer, loss, train_loader, device)
         val_loss = val_epoch(cmodel, loss, val_loader, device)
-        #wandb.log({"loss": train_loss, "loss_val": val_loss, "epoch": epoch})
+        wandb.log({"loss": train_loss, "loss_val": val_loss, "epoch": epoch})
         
         count = count + 1
         checkpoint_count = checkpoint_count + 1 
@@ -100,4 +100,4 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
             else:
                 utils.save_train_state(model, optimizer, epoch, "model/train.state")
                 print("Saved train state at epoch: ", epoch)
-    #run.finish()
+    run.finish()
