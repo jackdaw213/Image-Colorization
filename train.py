@@ -68,7 +68,7 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
     "optimizer": optimizer.__class__.__name__,
     "loss": loss.__class__.__name__,
     "learning_rate": optimizer.param_groups[0]['lr'],
-    "momentum": optimizer.param_groups[0]['momentum'],
+    "momentum": None if isinstance(optimizer, torch.optim.Adam) else optimizer.param_groups[0]['momentum'],
     }
 
     if resume_id is not None:
