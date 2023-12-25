@@ -11,6 +11,8 @@ from skimage.color import rgb2lab
 import tqdm as tq
 import numpy as np
 import auto_parts
+from PIL import Image
+import torchvision.transforms.functional as F
 
 def compare_img(img, size=(20, 6)):
     inp, out, ground = img
@@ -250,3 +252,18 @@ def create_dummy_label_file(folder_path, output_file="labels.txt"):
 def label_file_check(folder_path):
     if not os.path.isfile(f"{folder_path}/labels.txt"):
         create_dummy_label_file(folder_path)
+
+def delete_grayscale_image(folder_path):
+    for filename in os.listdir(folder_path):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            image = f"{folder_path}/{filename}"
+            p = Image.open(image).convert("RGB")
+
+            tensor = F.pil_to_tensor(p)
+
+            mean_r = torch.mean(tensor[0].float())
+            mean_g = torch.mean(tensor[1].float())
+            mean_b = torch.mean(tensor[2].float())
+
+            if mean_r == mean_g == mean_b:
+                os.remove(image)
