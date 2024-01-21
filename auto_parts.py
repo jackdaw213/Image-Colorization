@@ -70,12 +70,3 @@ class OutConv(nn.Module):
         )
     def forward(self, inp):
         return self.seq(inp)
-
-#https://en.wikipedia.org/wiki/Huber_loss
-class HuberLoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-    def forward(self, pred, target, delta=1):
-        diff = torch.abs(pred - target)
-        smooth_l1_loss = 0.5 * torch.where(diff < delta, diff ** 2, delta * (diff - 0.5 * delta))
-        return torch.mean(smooth_l1_loss)
