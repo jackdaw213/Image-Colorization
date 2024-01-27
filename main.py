@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import argparse
 from torch.utils.data import DataLoader
 from nvidia.dali.plugin.pytorch import DALIGenericIterator
@@ -6,7 +7,6 @@ from nvidia.dali.plugin.pytorch import DALIGenericIterator
 import dataset
 import model
 import train
-import auto_parts
 import utils
 
 NUM_EPOCHS = 100
@@ -134,7 +134,7 @@ if args.optimizer == "sgd":
 else:
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
-loss = auto_parts.HuberLoss()
+loss = nn.SmoothL1Loss()
 
 print("Training...")
 train.train_model(model, 

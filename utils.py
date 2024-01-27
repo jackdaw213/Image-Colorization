@@ -10,7 +10,7 @@ from skimage.color import lab2rgb
 from skimage.color import rgb2lab
 import tqdm as tq
 import numpy as np
-import auto_parts
+import torch.nn as nn
 from PIL import Image
 import torchvision.transforms.functional as F
 
@@ -82,7 +82,7 @@ def test_learnability(model, learning_rate, image_path, n_epochs):
 
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    loss_func = auto_parts.HuberLoss().cuda()
+    loss_func = nn.SmoothL1Loss().cuda()
 
     train_list = []
 
