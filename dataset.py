@@ -41,7 +41,6 @@ class ColorDataset(torch.utils.data.Dataset):
                                          name="Reader")
         
         images = fn.decoders.image(images, device="mixed", output_type=types.RGB)
-        images = fn.python_function(images, function=rgb2lab)
 
         if do_transform:
             # images = fn.crop_mirror_normalize(images, 
@@ -49,6 +48,8 @@ class ColorDataset(torch.utils.data.Dataset):
             #                       mean=[0.485, 0.456, 0.406], 
             #                       std=[0.229, 0.224, 0.225])
             images = fn.resize(images, size=(320, 240))
+
+        images = fn.python_function(images, function=rgb2lab)
 
         images = fn.transpose(images, perm=[2, 0, 1])
         
