@@ -245,7 +245,7 @@ def pad_fetures(up, con_channels):
 def create_dummy_label_file(folder_path, output_file="labels.txt"):
     with open(f"{folder_path}/{output_file}", 'w') as f:
         for filename in os.listdir(folder_path):
-            if filename.endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+            if filename.endswith(('.png', '.jpg', '.jpeg', '.JPEG')):
                 label_line = f"{filename} 0\n"
                 f.write(label_line)
 
@@ -255,7 +255,7 @@ def label_file_check(folder_path):
 
 def delete_grayscale_image(folder_path):
     for filename in os.listdir(folder_path):
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.JPEG')):
             image = f"{folder_path}/{filename}"
             p = Image.open(image).convert("RGB")
 
