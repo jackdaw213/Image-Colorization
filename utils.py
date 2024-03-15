@@ -139,20 +139,20 @@ def plot_loss_history(state_file):
     plt.legend()
     plt.show()
 
-def save_train_state(model, optimizer, epoch, path, checkpoint=False):
+def save_train_state(model, optimizer, epoch, path):
+    # This one is for resuming training
     torch.save({
     'model': model.state_dict(),
     'optimizer': optimizer.state_dict(),
     'epoch': epoch
     }, path)
 
-    if checkpoint:
-        path = path + ".epoch" + str(epoch + 1)
-        torch.save({
-        'model': model.state_dict(),
-        'optimizer': optimizer.state_dict(),
-        'epoch': epoch
-        }, path)
+    path = path + ".epoch" + str(epoch + 1)
+    torch.save({
+    'model': model.state_dict(),
+    'optimizer': optimizer.state_dict(),
+    'epoch': epoch
+    }, path)
 
 def load_train_state(path):
     try:
