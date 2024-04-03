@@ -135,6 +135,6 @@ train.train_model(model,
                   train_loader, 
                   val_loader, 
                   "Colorization", 
-                  epochs=args.num_epochs, 
+                  epochs=args.epochs, 
                   checkpoint_freq=args.checkpoint_freq, 
                   resume_id=args.resume_id)
