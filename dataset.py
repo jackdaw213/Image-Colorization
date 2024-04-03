@@ -14,7 +14,7 @@ class ColorDataset(torch.utils.data.Dataset):
         self.image_dir = image_dir
         self.do_transform = do_transform
         self.transform = transforms.Compose([
-            transforms.Resize((320, 240), antialias=True)
+            transforms.Resize((248, 248), antialias=True)
         ])
     def __len__(self):
         return len(self.names)
@@ -47,7 +47,7 @@ class ColorDataset(torch.utils.data.Dataset):
             #                       dtype=types.FLOAT,
             #                       mean=[0.485, 0.456, 0.406], 
             #                       std=[0.229, 0.224, 0.225])
-            images = fn.resize(images, size=(320, 240))
+            images = fn.resize(images, size=(248, 248))
 
         images = fn.python_function(images, function=rgb2lab)
 
