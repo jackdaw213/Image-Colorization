@@ -38,8 +38,6 @@ class ColorDataset(torch.utils.data.Dataset):
             mask = torch.rand((248, 248)) > 0.95
             black = torch.cat([black, color * mask], dim=0)
         else:
-            # Input is gray scale image with 1 channel, resnet needs 3 so we need
-            # to pad the image with extra 2 channels of 0
             black = F.pad(black, (0, 0, 0, 0, 1, 1), mode='constant', value=0)
 
         return black, color
