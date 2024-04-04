@@ -64,11 +64,7 @@ class StyleTransfer(nn.Module):
 
         if not encoder_only:
             x = self.d4(adain, None)
-            print(x.shape)
-            print(concat_features["layer3"].shape)
             x = self.d3(x, concat_features["layer3"])
-            print(x.shape)
-            print(concat_features["layer2"].shape)
             x = self.d2(x, concat_features["layer2"])
             x = self.d1(x, concat_features["layer1"])
             
