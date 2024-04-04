@@ -96,9 +96,13 @@ class UNetResEncoder(nn.Module):
         self.d5 = ap.DecoderBlock(512, 256)
         self.d4 = ap.DecoderBlock(256, 128)
         self.d3 = ap.DecoderBlock(128, 64)
+        # This will take features from the last decoder block (up_in 64) halve it
+        # to 32 concatenates with the features from the encoder block (in 32 + 64)
+        # and outputs (out 64) features
         self.d2 = ap.DecoderBlock(in_channels=32 + 64, out_channels=64, 
                                   up_in_channels=64, up_out_channels=32)
-        self.d1 = ap.DecoderBlock(in_channels=32 + 1, out_channels=64, 
+        # For this one, 3 means the input image 
+        self.d1 = ap.DecoderBlock(in_channels=32 + 3, out_channels=64, 
                                   up_in_channels=64, up_out_channels=32)
 
         self.out = ap.OutConv(64, 2)
