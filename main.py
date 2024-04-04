@@ -10,6 +10,7 @@ import train
 import utils
 
 MODEL = "color"
+COLOR_PEAK = True
 NUM_EPOCHS = 100
 BATCH_SIZE = 32
 NUM_WORKERS = 4
@@ -32,7 +33,11 @@ parser = argparse.ArgumentParser(description='Image colorization using UNet')
 
 parser.add_argument('-m', '--model', type=str,
                     default=MODEL,
-                    help='Number of training epochs',
+                    help='Select what model to train',
+                    choices=["color", "style"])
+parser.add_argument('-cp', '--color_peak', type=bool,
+                    default=COLOR_PEAK,
+                    help='Passing color infos to the model during training',
                     choices=["color", "style"])
 parser.add_argument('-e', '--epochs', type=int,
                     default=NUM_EPOCHS,
@@ -92,6 +97,7 @@ if args.enable_dali:
     if args.model == "color":
         train_loader = DALIGenericIterator(
             [dataset.ColorDataset.dali_pipeline(image_dir=args.train_dir,
+                                                color_peak=args.color_peak,
                                                 batch_size=args.batch_size,
                                                 num_threads=args.num_workers)],
             ['black', 'color'],
@@ -100,6 +106,7 @@ if args.enable_dali:
 
         val_loader = DALIGenericIterator(
             [dataset.ColorDataset.dali_pipeline(image_dir=args.val_dir,
+                                                color_peak=args.color_peak,
                                                 batch_size=args.batch_size,
                                                 num_threads=args.num_workers)],
             ['black', 'color'],
@@ -109,8 +116,8 @@ if args.enable_dali:
         pass
 else:
     if args.model == "color":
-        train_dataset = dataset.ColorDataset(args.train_dir, True)
-        val_dataset = dataset.ColorDataset(args.val_dir, True)
+        train_dataset = dataset.ColorDataset(args.train_dir, True, args.color_peak)
+        val_dataset = dataset.ColorDataset(args.val_dir, True, args.color_peak)
     else:
         pass
 
