@@ -8,6 +8,8 @@ import nvidia.dali.types as types
 from nvidia.dali.pipeline import pipeline_def
 import nvidia.dali.fn as fn
 
+import utils
+
 class ColorDataset(torch.utils.data.Dataset):
     def __init__(self, image_dir, do_transform=False):
         self.names = os.listdir(image_dir)
@@ -36,9 +38,9 @@ class ColorDataset(torch.utils.data.Dataset):
     @pipeline_def(device_id=0)
     def dali_pipeline(image_dir, do_transform=True):
         images, _ = fn.readers.file(file_root=image_dir, 
-                                         file_list=image_dir+"/labels.txt",
-                                         random_shuffle=True, 
-                                         name="Reader")
+                                    files=utils.list_images(image_dir),
+                                    random_shuffle=True, 
+                                    name="Reader")
         
         images = fn.decoders.image(images, device="mixed", output_type=types.RGB)
 

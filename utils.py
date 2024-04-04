@@ -240,18 +240,15 @@ def pad_fetures(up, con_channels):
                                     diffY // 2, diffY - diffY // 2])
     return up
 
-# Nvidia DALI file readers needs a dummy label file to read
-# all images in a folder :vv
-def create_dummy_label_file(folder_path, output_file="labels.txt"):
-    with open(f"{folder_path}/{output_file}", 'w') as f:
-        for filename in os.listdir(folder_path):
-            if filename.endswith(('.png', '.jpg', '.jpeg', '.JPEG')):
-                label_line = f"{filename} 0\n"
-                f.write(label_line)
-
-def label_file_check(folder_path):
-    if not os.path.isfile(f"{folder_path}/labels.txt"):
-        create_dummy_label_file(folder_path)
+# Instead of creating a labels file, we can just pass a list of files to the 
+# decoder via files argument. And it does not take too much time either (2s 
+# from my testing)
+def list_images(folder_path):
+    temp = []
+    for filename in os.listdir(folder_path):
+        if filename.endswith(('.png', '.jpg', '.jpeg', '.JPEG')):
+            temp.append(filename)
+    return temp
 
 def delete_grayscale_image(folder_path):
     for filename in os.listdir(folder_path):

@@ -9,6 +9,7 @@ import model
 import train
 import utils
 
+MODEL = "color"
 NUM_EPOCHS = 100
 BATCH_SIZE = 32
 NUM_WORKERS = 4
@@ -29,6 +30,10 @@ SPICY_PYTORCH_FLAGS = True
 
 parser = argparse.ArgumentParser(description='Image colorization using UNet')
 
+parser.add_argument('-m', '--model', type=str,
+                    default=MODEL,
+                    help='Number of training epochs',
+                    choices=["color", "style"])
 parser.add_argument('-e', '--epochs', type=int,
                     default=NUM_EPOCHS,
                     help='Number of training epochs')
@@ -84,9 +89,6 @@ if args.spicy_pytorch_flags:
 
 print("Init dataloader")
 if args.enable_dali:
-    utils.label_file_check(args.train_dir)
-    utils.label_file_check(args.val_dir)
-
     train_loader = DALIGenericIterator(
         [dataset.ColorDataset.dali_pipeline(image_dir=args.train_dir,
                                             batch_size=args.batch_size,
@@ -103,8 +105,12 @@ if args.enable_dali:
         reader_name='Reader'
     )
 else:
-    train_dataset = dataset.ColorDataset(args.train_dir, True)
-    val_dataset = dataset.ColorDataset(args.val_dir, True)
+    if args.model == "color":
+        train_dataset = dataset.ColorDataset(args.train_dir, True)
+        val_dataset = dataset.ColorDataset(args.val_dir, True)
+    else:
+        train_dataset = dataset.ColorDataset(args.train_dir, True)
+        val_dataset = dataset.ColorDataset(args.val_dir, True)
 
     train_loader = DataLoader(
         train_dataset, 
@@ -118,8 +124,11 @@ else:
         shuffle=True, 
         num_workers=args.num_workers, 
         pin_memory=True)
-
-model = model.UNetResEncoder()
+    
+if args.model == "color":
+    model = model.UNetResEncoder()
+else:
+    model = model.StyleTransfer()
 
 if args.optimizer == "sgd":
     optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum)
