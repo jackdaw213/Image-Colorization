@@ -5,8 +5,9 @@ from nvidia.dali.plugin.pytorch import DALIGenericIterator
 import wandb
 
 import utils
+from model import UNetResEncoder
 
-def train_epoch(model, optimizer, loss_func, loader, device):
+def train_color(model, optimizer, loss_func, loader, device):
 
     model.train()
 
@@ -30,7 +31,7 @@ def train_epoch(model, optimizer, loss_func, loader, device):
 
     return epoch_loss.compute()
 
-def val_epoch(model, loss_func, loader, device):
+def val_color(model, loss_func, loader, device):
 
     model.eval()
 
@@ -48,6 +49,28 @@ def val_epoch(model, loss_func, loader, device):
             loss = loss_func(output, color)
 
         epoch_loss(loss)
+
+    return epoch_loss.compute()
+
+def train_style(model, optimizer, loss_func, loader, device):
+
+    model.train()
+
+    epoch_loss = torchmetrics.MeanMetric().to(device)
+
+    for _, data in enumerate(loader):
+        pass
+
+    return epoch_loss.compute()
+
+def val_style(model, loss_func, loader, device):
+
+    model.eval()
+
+    epoch_loss = torchmetrics.MeanMetric().to(device)
+
+    for _, data in enumerate(loader):
+        pass
 
     return epoch_loss.compute()
 
@@ -84,8 +107,12 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
         run = wandb.init(project=project_name, config=config)
 
     for epoch in tq.tqdm(range(init_epoch, epochs), total=epochs, desc='Epochs', initial=init_epoch):
-        train_loss = train_epoch(cmodel, optimizer, loss, train_loader, device)
-        val_loss = val_epoch(cmodel, loss, val_loader, device)
+        if isinstance(model, UNetResEncoder):
+            train_loss = train_color(cmodel, optimizer, loss, train_loader, device)
+            val_loss = val_color(cmodel, loss, val_loader, device)
+        else:
+            train_loss = train_style(cmodel, optimizer, loss, train_loader, device)
+            val_loss = val_style(cmodel, loss, val_loader, device)
         wandb.log({"loss": train_loss, "loss_val": val_loss, "epoch": epoch})
         
         checkpoint_count = checkpoint_count + 1 

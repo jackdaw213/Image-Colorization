@@ -89,28 +89,30 @@ if args.spicy_pytorch_flags:
 
 print("Init dataloader")
 if args.enable_dali:
-    train_loader = DALIGenericIterator(
-        [dataset.ColorDataset.dali_pipeline(image_dir=args.train_dir,
-                                            batch_size=args.batch_size,
-                                            num_threads=args.num_workers)],
-        ['black', 'color'],
-        reader_name='Reader'
-    )
+    if args.model == "color":
+        train_loader = DALIGenericIterator(
+            [dataset.ColorDataset.dali_pipeline(image_dir=args.train_dir,
+                                                batch_size=args.batch_size,
+                                                num_threads=args.num_workers)],
+            ['black', 'color'],
+            reader_name='Reader'
+        )
 
-    val_loader = DALIGenericIterator(
-        [dataset.ColorDataset.dali_pipeline(image_dir=args.val_dir,
-                                            batch_size=args.batch_size,
-                                            num_threads=args.num_workers)],
-        ['black', 'color'],
-        reader_name='Reader'
-    )
+        val_loader = DALIGenericIterator(
+            [dataset.ColorDataset.dali_pipeline(image_dir=args.val_dir,
+                                                batch_size=args.batch_size,
+                                                num_threads=args.num_workers)],
+            ['black', 'color'],
+            reader_name='Reader'
+        )
+    else:
+        pass
 else:
     if args.model == "color":
         train_dataset = dataset.ColorDataset(args.train_dir, True)
         val_dataset = dataset.ColorDataset(args.val_dir, True)
     else:
-        train_dataset = dataset.ColorDataset(args.train_dir, True)
-        val_dataset = dataset.ColorDataset(args.val_dir, True)
+        pass
 
     train_loader = DataLoader(
         train_dataset, 
