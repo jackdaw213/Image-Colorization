@@ -107,10 +107,6 @@ class UNetResEncoder(nn.Module):
         inp = x
         features_dict = {}
 
-        # Input is gray scale image with 1 channel, resnet needs 3 so we need
-        # to pad the image with extra 2 channels of 0
-        x = nn.functional.pad(x, (0, 0, 0, 0, 1, 1), mode='constant', value=0)
-
         for i, layer in enumerate(self.resnet_layers, 0):
             x = layer(x)
             features_dict[f"layer{i}"] = x
