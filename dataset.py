@@ -74,7 +74,7 @@ class ColorDataset(torch.utils.data.Dataset):
             # about the color channel is given to the network is unknown as it does not 
             # mention by the author. So I will give the network only 5% of the information
             mask = torch.rand((248, 248), device="cuda") > 0.95
-            black = torch.cat([black, color * mask], dim=0)
+            black = fn.cat(black, color * mask, axis=0)
         else:
             # Input is gray scale image with 1 channel, resnet needs 3 so we need
             # to pad the image with extra 2 channels of 0
