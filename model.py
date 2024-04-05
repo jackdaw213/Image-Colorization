@@ -8,10 +8,11 @@ import torch.nn.functional as F
 
 # Today is 04/04/2024 and I'm thinking about the paper I'm trying to implement. 
 # I see that it was published in 2017 and think to myself: "Ha, this paper was 
-# published quite recently" only for a truck to hit my brain and realized that 2017
-# was 7 FUCKING years ago, WTF i thought it was 3-4 years ago. Where did all of those years go?
-# I was in 8th grade and now I'm in second year of college ?? I swear I probably got into an 
-# accident and in coma for 3 years or some shits cause I was 18 YESTERDAY and now I'm fucking 20!! 
+# published quite recently" only for a truck to hit my brain and realized that 
+# 2017 was 7 FUCKING years ago, WTF i thought it was 3-4 years ago. Where did 
+# all of those years go?. I was in 8th grade and now I'm in second year of 
+# college ?? I swear I probably got into an accident and in coma for 3 years 
+# or some shits cause I was 18 YESTERDAY and now I'm fucking 20!! 
 # I'm probably retiring next year if shits like this keep happening :((
 # ⣿⣿⣿⠛⢻⡟⠛⠛⠛⠛⠛⣿⠋⢻⣿⠟⠛⠋⠛⢿⣿⣿⣿⣿⣟⠛⢻⣿⡿⠛⠛⠛⠛⢿⣿⡟⠛⠛⠛⠛⡟⠛⢿⣿⣿⠛⢛⡿⠛⠛⠛⠛⣿⠛⠛⠛⠛⠻⣿⣿
 # ⣿⣿⣿⠀⢸⣷⣷⡇⠀⣾⣾⣿⣤⣽⣇⠀⠰⢿⣷⣿⣿⣿⣿⣿⣗⠀⢸⡟⠀⢰⣾⣶⡆⠀⢻⡇⠀⢼⢾⢾⣷⠀⠘⣿⡏⠀⣼⣯⠀⢰⢷⢷⣿⠂⠀⣿⡆⠀⣸⣿
@@ -47,6 +48,7 @@ import torch.nn.functional as F
 class StyleTransfer(nn.Module):
     def __init__(self):
         super().__init__()
+
         self.vgg19 = torchvision.models.vgg19(weights=VGG19_Weights.DEFAULT).features
 
         for param in self.vgg19.parameters():
@@ -113,6 +115,7 @@ class StyleTransfer(nn.Module):
 class UNetResEncoder(nn.Module):
     def __init__(self):
         super().__init__()
+        
         resnet = torchvision.models.resnet.resnet34(weights=ResNet34_Weights.DEFAULT)
 
         for param in resnet.parameters():
@@ -175,6 +178,7 @@ class UNetResEncoder(nn.Module):
 class UNet(nn.Module):
     def __init__(self):
         super().__init__()
+        
         self.e1 = ap.EncoderBlock(1, 64)
         self.e2 = ap.EncoderBlock(64, 128)
         self.e3 = ap.EncoderBlock(128, 256)

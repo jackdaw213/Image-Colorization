@@ -209,30 +209,24 @@ def split_images(input_folder, output_folder, train_ratio=0.8, val_ratio=0.15, t
     print(f"Splitting complete. Train: {train_count}, Val: {val_count}, Test: {test_count}")
 
 def create_small_dataset(original_folder, target_folder, split_ratio=0.1):
-    # Create target folder if it doesn't exist
     if not os.path.exists(target_folder):
         os.makedirs(target_folder)
 
-    # List all files in the original dataset folder
     all_files = os.listdir(original_folder)
 
-    # Calculate the number of files to keep for both training and validation
     num_files = len(all_files)
     num_files = int(num_files * split_ratio)
 
-    # Randomly sample files for validation
     small_files = random.sample(all_files, num_files)
 
-    # Copy validation files to the target folder
     for file_name in small_files:
         source_path = os.path.join(original_folder, file_name)
         target_path = os.path.join(target_folder, file_name)
         shutil.copyfile(source_path, target_path)
 
 def pad_fetures(up, con_channels):
-    # We need to pad the mask when we concatenating
-    # upscaled features that were previously 
-    # downscaled from odd dimension features
+    # We need to pad the features with 0 when we concatenating upscaled 
+    # features that were previously downscaled from odd dimension features
     # For example: 25 -> down -> 12 -> up -> 24 -> pad -> 25
     diffY = con_channels.size()[2] - up.size()[2]
     diffX = con_channels.size()[3] - up.size()[3]

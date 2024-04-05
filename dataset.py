@@ -20,6 +20,7 @@ class ColorDataset(torch.utils.data.Dataset):
         self.transform = transforms.Compose([
             transforms.Resize((248, 248), antialias=True)
         ])
+
     def __len__(self):
         return len(self.names)
 
@@ -28,6 +29,7 @@ class ColorDataset(torch.utils.data.Dataset):
 
         image = rgb2lab(Image.open(image_path).convert("RGB"))
         image = torch.from_numpy(image).permute(2,0,1).float()
+        
         if self.do_transform:
             image = self.transform(image)
 

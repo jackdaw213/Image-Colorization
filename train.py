@@ -95,10 +95,13 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
 
     if resume_id is not None:
         model_, optimizer_, epoch_ = utils.load_train_state("model/train.state")
+
         model.load_state_dict(model_)
         cmodel = torch.compile(model, mode="reduce-overhead")
         cmodel.to(device)
+
         optimizer.load_state_dict(optimizer_)
+
         init_epoch = epoch_ + 1 # PLus 1 means start at the next epoch
         run = wandb.init(project=project_name, config=config, id=resume_id, resume=True)
     else:
@@ -113,6 +116,7 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
         else:
             train_loss = train_style(cmodel, optimizer, loss, train_loader, device)
             val_loss = val_style(cmodel, loss, val_loader, device)
+            
         wandb.log({"loss": train_loss, "loss_val": val_loss, "epoch": epoch})
         
         checkpoint_count = checkpoint_count + 1 
