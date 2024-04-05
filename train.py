@@ -2,6 +2,7 @@ import torch
 import tqdm as tq
 import torchmetrics
 from nvidia.dali.plugin.pytorch import DALIGenericIterator
+from datetime import datetime
 import wandb
 
 import utils
@@ -123,6 +124,7 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
         if checkpoint_count == checkpoint_freq:
             utils.save_train_state(model, optimizer, epoch, "model/train.state")
             checkpoint_count = 0
-            print("Saved checkpoint at epoch: ", epoch + 1)
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"Saved checkpoint at epoch: {epoch + 1} ({now})")
 
     run.finish()
