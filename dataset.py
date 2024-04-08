@@ -37,7 +37,7 @@ class ColorDataset(torch.utils.data.Dataset):
         black = image[0, :, :].unsqueeze(0)
 
         if self.color_peak:
-            mask = torch.rand((248, 248)) > 0.95
+            mask = (torch.rand((248, 248)) > 0.95).float()
             black = torch.cat([black, color * mask], dim=0)
         else:
             black = F.pad(black, (0, 0, 0, 0, 1, 1), mode='constant', value=0)
@@ -75,7 +75,7 @@ class ColorDataset(torch.utils.data.Dataset):
             # to force the network to complete the ab information. How much information
             # about the color channel is given to the network is unknown as it does not 
             # mention by the author. So I will give the network only 5% of the information
-            mask = torch.rand((248, 248), device="cuda") > 0.95
+            mask = (torch.rand((248, 248), device="cuda") > 0.95).float()
             black = fn.cat(black, color * mask, axis=0)
         else:
             # Input is gray scale image with 1 channel, resnet needs 3 so we need
