@@ -40,14 +40,14 @@ def val_color(model, loss_func, loader, device):
 
     for _, data in enumerate(loader):
         if isinstance(loader, DALIGenericIterator):
-            black, color = data[0]["black"], data[0]["color"]
+            black, color, mask = data[0]["black"], data[0]["color"], data[0]["mask"].unsqueeze(dim=1).to(device)
         else:
-            black, color = data
-            black, color = black.to(device), color.to(device)
+            black, color, mask = data
+            black, color = black.to(device), color.to(device), mask.unsqueeze(dim=1).to(device)
 
         with torch.no_grad():
             output = model(black)
-            loss = loss_func(output, color)
+            loss = loss_func(output, color, mask)
 
         epoch_loss(loss)
 
