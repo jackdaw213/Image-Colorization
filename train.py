@@ -16,7 +16,7 @@ def train_color(model, optimizer, loss_func, loader, device):
 
     for _, data in enumerate(loader):
         if isinstance(loader, DALIGenericIterator):
-            black, color, mask = data[0]["black"], data[0]["color"], data[0]["mask"].unsqueeze(dim=1)
+            black, color, mask = data[0]["black"], data[0]["color"], data[0]["mask"].unsqueeze(dim=1).to(device)
         else:
             black, color, mask = data
             black, color = black.to(device), color.to(device), mask.unsqueeze(dim=1).to(device)

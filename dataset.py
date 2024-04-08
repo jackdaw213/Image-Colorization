@@ -75,6 +75,10 @@ class ColorDataset(torch.utils.data.Dataset):
             # to force the network to complete the ab information. How much information
             # about the color channel is given to the network is unknown as it does not 
             # mention by the author. So I will give the network only 5% of the information
+
+            # TODO: Change torch method to DALI one because mask gets copied back to RAM 
+            # everytime we return it even with device="cuda". I do not know if this is a
+            # bug or not
             mask = (torch.rand((248, 248), device="cuda") > 0.95).float()
             black = fn.cat(black, color * mask, axis=0)
         else:
