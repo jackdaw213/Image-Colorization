@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import utils
 
 class AdaIN(nn.Module):
@@ -16,6 +17,17 @@ class AdaINLoss(nn.Module):
 
     def forward(self):
         pass
+
+class ColorLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, model_out, ground_truth, mask, weight_coefficient=10):
+        mask = 1 + weight_coefficient * mask
+        model_out = mask * model_out
+        ground_truth = mask * ground_truth
+        return F.huber_loss(model_out, ground_truth)
+
 
 class EncoderBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, padding=1):

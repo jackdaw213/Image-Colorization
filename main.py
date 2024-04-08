@@ -7,6 +7,7 @@ from nvidia.dali.plugin.pytorch import DALIGenericIterator
 import dataset
 import model
 import train
+import auto_parts as ap
 import utils
 
 MODEL = "color"
@@ -100,7 +101,7 @@ if args.enable_dali:
                                                 color_peak=args.color_peak,
                                                 batch_size=args.batch_size,
                                                 num_threads=args.num_workers)],
-            ['black', 'color'],
+            ['black', 'color', 'mask'],
             reader_name='Reader'
         )
 
@@ -109,7 +110,7 @@ if args.enable_dali:
                                                 color_peak=args.color_peak,
                                                 batch_size=args.batch_size,
                                                 num_threads=args.num_workers)],
-            ['black', 'color'],
+            ['black', 'color', 'mask'],
             reader_name='Reader'
         )
     else:
@@ -136,15 +137,15 @@ else:
     
 if args.model == "color":
     model = model.UNetResEncoder()
+    loss = ap.ColorLoss()
 else:
     model = model.StyleTransfer()
+    loss = ap.AdaINLoss()
 
 if args.optimizer == "sgd":
     optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum)
 else:
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
-
-loss = nn.SmoothL1Loss()
 
 print("Training...")
 train.train_model(model, 

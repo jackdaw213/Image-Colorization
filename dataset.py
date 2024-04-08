@@ -42,7 +42,7 @@ class ColorDataset(torch.utils.data.Dataset):
         else:
             black = F.pad(black, (0, 0, 0, 0, 1, 1), mode='constant', value=0)
 
-        return black, color
+        return black, color, mask
     
     @staticmethod
     @pipeline_def(device_id=0)
@@ -82,4 +82,4 @@ class ColorDataset(torch.utils.data.Dataset):
             # to pad the image with extra 2 channels of 0
             black = F.pad(black, (0, 0, 0, 0, 1, 1), mode='constant', value=0)
 
-        return black, color
+        return black, color, mask
