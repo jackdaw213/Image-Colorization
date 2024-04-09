@@ -12,7 +12,7 @@ class AdaIN(nn.Module):
         return temp.permute([2,3,0,1])
     
 class AdaINLoss(nn.Module):
-    def __init__(self, _lambda):
+    def __init__(self, _lambda=1):
         super().__init__()
         self._lambda = _lambda
 
