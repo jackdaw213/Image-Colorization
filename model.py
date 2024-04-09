@@ -74,7 +74,7 @@ class StyleTransfer(nn.Module):
         self.d4 = ap.VggDecoderBlock(512, 256, 4)
         self.d3 = ap.VggDecoderBlock(256, 128, 3)
         self.d2 = ap.VggDecoderBlock(128, 64, 2)
-        self.d1 = ap.VggDecoderBlock(64, 2, 1)
+        self.d1 = ap.VggDecoderBlock(64, 3, 1)
 
     def encoder(self, input, style_features=None, concat_features=None):
         """
@@ -130,7 +130,7 @@ class StyleTransfer(nn.Module):
         
         if training:
             vgg_out, vgg_out_features = self.encoder(x)
-            return x, vgg_out, adain, vgg_out_features, style_features
+            return vgg_out, adain, vgg_out_features, style_features
         else:
             return x
 
