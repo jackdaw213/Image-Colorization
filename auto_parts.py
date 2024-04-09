@@ -12,11 +12,30 @@ class AdaIN(nn.Module):
         return temp.permute([2,3,0,1])
     
 class AdaINLoss(nn.Module):
-    def __init__(self):
+    def __init__(self, _lambda):
         super().__init__()
+        self._lambda = _lambda
 
-    def forward(self):
-        pass
+    def contentLoss(self, vgg_out, adain_out):
+        return torch.norm(vgg_out - adain_out)
+
+    def styleLoss(self, vgg_out_features, style_features):
+        mean_sum = 0
+        std_sum = 0
+        for vgg_out, style in zip(vgg_out_features, style_features):
+            mean_sum += torch.norm(torch.mean(vgg_out, dim=(2, 3)) - torch.mean(style, dim=(2, 3)))
+            std_sum += torch.norm(torch.std(vgg_out, dim=(2, 3)) - torch.std(style, dim=(2, 3)))
+        return mean_sum + std_sum
+
+    def forward(self, vgg_out, adain_out, vgg_out_features, style_features):
+        """
+            The input will go through encoder1 -> adain -> decoder -> encoder 2 (for calculating losses)
+            vgg_out: Output of encoder2 
+            adain_out: Output of the adain layer
+            vgg_out_features: Features from encoder 2
+            style_features: Features from encoder 1
+        """        
+        return self.contentLoss(vgg_out, adain_out) + self._lambda * self.styleLoss(vgg_out_features, style_features)
 
 class ColorLoss(nn.Module):
     def __init__(self):
