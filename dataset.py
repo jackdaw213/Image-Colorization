@@ -46,7 +46,7 @@ class ColorDataset(torch.utils.data.Dataset):
     
     @staticmethod
     @pipeline_def(device_id=0)
-    def dali_pipeline(image_dir, do_transform=True, color_peak=False):
+    def dali_pipeline(image_dir, color_peak=False):
         images, _ = fn.readers.file(file_root=image_dir, 
                                     files=utils.list_images(image_dir),
                                     random_shuffle=True, 
@@ -54,12 +54,7 @@ class ColorDataset(torch.utils.data.Dataset):
         
         images = fn.decoders.image(images, device="mixed", output_type=types.RGB)
 
-        if do_transform:
-            # images = fn.crop_mirror_normalize(images, 
-            #                       dtype=types.FLOAT,
-            #                       mean=[0.485, 0.456, 0.406], 
-            #                       std=[0.229, 0.224, 0.225])
-            images = fn.resize(images, size=(248, 248))
+        images = fn.resize(images, size=(248, 248))
 
         images = fn.python_function(images, function=rgb2lab)
 
@@ -87,3 +82,36 @@ class ColorDataset(torch.utils.data.Dataset):
             black = F.pad(black, (0, 0, 0, 0, 1, 1), mode='constant', value=0)
 
         return black, color, mask
+    
+class StyleDataset(torch.utils.data.Dataset):
+    def __init__(self):
+        pass
+
+    def __len__(self):
+        pass
+
+    def __getitem__(self):
+        pass
+    
+    @staticmethod
+    @pipeline_def(device_id=0)
+    def dali_pipeline(content_dir, style_dir):
+        content_images, _ = fn.readers.file(file_root=content_dir, 
+                                            files=utils.list_images(content_dir),
+                                            random_shuffle=True, 
+                                            name="Reader")
+        
+        style_images, _ = fn.readers.file(file_root=style_dir, 
+                                            files=utils.list_images(style_dir),
+                                            random_shuffle=True)
+        
+        content_images = fn.decoders.image(content_images, device="mixed", output_type=types.RGB)
+        style_images = fn.decoders.image(style_images, device="mixed", output_type=types.RGB)
+
+        content_images = fn.resize(content_images, size=(248, 248), dtype=types.FLOAT)
+        style_images = fn.resize(style_images, size=(248, 248), dtype=types.FLOAT)
+
+        content_images = fn.transpose(content_images, perm=[2, 0, 1])
+        style_images = fn.transpose(style_images, perm=[2, 0, 1])
+
+        return content_images, style_images

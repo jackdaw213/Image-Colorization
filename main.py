@@ -18,6 +18,8 @@ NUM_WORKERS = 4
 
 TRAIN_DIR = "data/train"
 VAL_DIR = "data/val"
+TRAIN_DIR_STYLE = "data/train_style"
+VAL_DIR_STYLE = "data/val_style"
 
 OPTIMIZER = "adam"
 LEARNING_RATE = 0.00005
@@ -55,7 +57,13 @@ parser.add_argument('-td', '--train_dir', type=str,
                     help='Path to the train image folder')
 parser.add_argument('-vd', '--val_dir', type=str,
                     default=VAL_DIR,
-                    help='Path to the validation image folder')
+                    help='Path to the style validation image folder')
+parser.add_argument('-tds', '--train_dir_style', type=str,
+                    default=TRAIN_DIR_STYLE,
+                    help='Path to the train image folder')
+parser.add_argument('-vds', '--val_dir_style', type=str,
+                    default=VAL_DIR_STYLE,
+                    help='Path to the style validation image folder')
 
 parser.add_argument('-op', '--optimizer', type=str,
                     default=OPTIMIZER,
@@ -114,7 +122,23 @@ if args.enable_dali:
             reader_name='Reader'
         )
     else:
-        pass
+        train_loader = DALIGenericIterator(
+            [dataset.StyleDataset.dali_pipeline(content_dir=args.train_dir,
+                                                style_dir=args.train_dir_style,
+                                                batch_size=args.batch_size,
+                                                num_threads=args.num_workers)],
+            ['content', 'style'],
+            reader_name='Reader'
+        )
+
+        val_loader = DALIGenericIterator(
+            [dataset.StyleDataset.dali_pipeline(content_dir=args.val_dir,
+                                                style_dir=args.val_dir_style,
+                                                batch_size=args.batch_size,
+                                                num_threads=args.num_workers)],
+            ['content', 'style'],
+            reader_name='Reader'
+        )
 else:
     if args.model == "color":
         train_dataset = dataset.ColorDataset(args.train_dir, True, args.color_peak)
@@ -153,7 +177,7 @@ train.train_model(model,
                   loss, 
                   train_loader, 
                   val_loader, 
-                  "Colorization", 
+                  "Colorization" if args.model == "color" else "StyleTransfer", 
                   epochs=args.epochs, 
                   checkpoint_freq=args.checkpoint_freq, 
                   resume_id=args.resume_id)

@@ -60,7 +60,16 @@ def train_style(model, optimizer, loss_func, loader, device):
     epoch_loss = torchmetrics.MeanMetric().to(device)
 
     for _, data in enumerate(loader):
-        pass
+        content, style = data[0]['content'], data[0]['style']
+
+        vgg_out, adain, vgg_out_features, style_features = model(content, style, training=True)
+        loss = loss_func(vgg_out, adain, vgg_out_features, style_features)
+
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+
+        epoch_loss(loss)
 
     return epoch_loss.compute()
 
@@ -71,7 +80,13 @@ def val_style(model, loss_func, loader, device):
     epoch_loss = torchmetrics.MeanMetric().to(device)
 
     for _, data in enumerate(loader):
-        pass
+        content, style = data[0]['content'].float(), data[0]['style'].float()
+
+        with torch.no_grad():
+            vgg_out, adain, vgg_out_features, style_features = model(content, style, training=True)
+            loss = loss_func(vgg_out, adain, vgg_out_features, style_features)
+
+        epoch_loss(loss)
 
     return epoch_loss.compute()
 
