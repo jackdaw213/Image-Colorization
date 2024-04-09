@@ -54,7 +54,7 @@ class StyleTransfer(nn.Module):
         for param in self.vgg19.parameters():
             param.requires_grad = False
 
-        self.vgg19_style_map = {
+        self.vgg19_feature_map = {
             '1': 'relu1_1',
             '6': 'relu2_1',
             '11': 'relu3_1', 
@@ -76,10 +76,19 @@ class StyleTransfer(nn.Module):
         self.d2 = ap.VggDecoderBlock(128, 64, 2)
         self.d1 = ap.VggDecoderBlock(64, 2, 1)
 
-    def forward(self, content, style, encoder_only=False):
+    def encoder(self, input, style_features=None, concat_features=None):
+        """
+            Because we needs style_features for style representations and concat_features from
+            the content image for final image reconstruction, therefore
+
+            style_features: If this is NOT null then the input is style image
+            concat_features: If this is NOT null then the input is content image
+            IF both of them are null, input is the final reconstructed image and the function will
+            return it's features and the encoder output for loss calculation
+        """        
+
         layer = 1
-        concat_features = {}
-        style_features = []
+        features = []
 
         # Cut off the model and sets up hooks is cleaner than looping through modules
         # But I want to use torch.compile(), which doesn't support hooks
@@ -87,30 +96,43 @@ class StyleTransfer(nn.Module):
             if num != '' and int(num) <= 20:
                 # In the paper the author replaces max pool with avg pool
                 if isinstance(module, nn.MaxPool2d):
-                    content = F.avg_pool2d(content, kernel_size=2, stride=2)
-                    style = F.avg_pool2d(style, kernel_size=2, stride=2)
+                    input = F.avg_pool2d(input, kernel_size=2, stride=2)
                 else:
-                    content = module(content)
-                    style = module(style)
+                    input = module(input)
 
-                if num in self.vgg19_style_map:
-                    style_features.append(style)
+                if num in self.vgg19_feature_map:
+                    if style_features is not None:
+                        style_features.append(input)
+                    elif concat_features is None:
+                        features.append(input)
 
-                if num in self.vgg19_concat_map and not encoder_only:
-                    concat_features[f"layer{layer}"] = content
+                if num in self.vgg19_concat_map and concat_features is not None:
+                    concat_features[f"layer{layer}"] = input
                     layer += 1
+
+        if style_features is None and concat_features is None:
+            return input, features
+        return input
+
+    def forward(self, content, style, training=False):
+        concat_features = {}
+        style_features = []
+
+        content = self.encoder(content, concat_features=concat_features)
+        style = self.encoder(style, style_features=style_features)
 
         adain = self.adain(content, style)
 
-        if not encoder_only:
-            x = self.d4(adain, None)
-            x = self.d3(x, concat_features["layer3"])
-            x = self.d2(x, concat_features["layer2"])
-            x = self.d1(x, concat_features["layer1"])
-            
-            return x, adain, style_features
-
-        return content, adain, style_features
+        x = self.d4(adain, None)
+        x = self.d3(x, concat_features["layer3"])
+        x = self.d2(x, concat_features["layer2"])
+        x = self.d1(x, concat_features["layer1"])
+        
+        if training:
+            vgg_out, vgg_out_features = self.encoder(x)
+            return x, vgg_out, adain, vgg_out_features, style_features
+        else:
+            return x
 
 class UNetResEncoder(nn.Module):
     def __init__(self):
