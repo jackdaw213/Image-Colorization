@@ -2,16 +2,22 @@ import os
 import shutil
 import sys
 import random
+import filetype
+
 import torch
 import torchmetrics
 from torchvision.io import read_image
+
 import matplotlib.pyplot as plt
 from skimage.color import lab2rgb
 from skimage.color import rgb2lab
+
 import tqdm as tq
 import numpy as np
 import torch.nn as nn
 from PIL import Image
+import PIL
+from PIL import ImageFile
 import torchvision.transforms.functional as F
 
 def compare_img(img, size=(20, 6)):
@@ -121,12 +127,13 @@ def test_trained_model(model, test_images_path, num_samples=8):
     for image_name in selected_images:   
         image_path = os.path.join(test_images_path, image_name) 
         l, ab = rgb_to_l_ab(image_path)
+        mask = (torch.rand((ab.shape[1], ab.shape[2])) > 0.95).float()
+        inp = torch.cat([l, ab * mask], dim=0)
         ab = ab.unsqueeze(0).float()
-        l = l.unsqueeze(0).float()
+        inp = inp.unsqueeze(0).float()
         model.eval()
         with torch.no_grad():
-            out = model(l)
-            l = l.squeeze(0)
+            out = model(inp)
             out = out.squeeze(0)
             ab = ab.squeeze(0)
             image_list.append((concat_l_and_to_rgb(l, ab.shape), l_ab_to_rgb(l, out), l_ab_to_rgb(l, ab)))
@@ -244,17 +251,42 @@ def list_images(folder_path):
             temp.append(filename)
     return temp
 
-def delete_grayscale_image(folder_path):
+def delete_grayscale_images(folder_path):
     for filename in os.listdir(folder_path):
         if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.JPEG')):
-            image = f"{folder_path}/{filename}"
-            p = Image.open(image).convert("RGB")
+            path = f"{folder_path}/{filename}"
+            image = Image.open(path).convert("RGB")
 
-            tensor = F.pil_to_tensor(p)
+            tensor = F.pil_to_tensor(image)
 
             mean_r = torch.mean(tensor[0].float())
             mean_g = torch.mean(tensor[1].float())
             mean_b = torch.mean(tensor[2].float())
 
             if mean_r == mean_g == mean_b:
-                os.remove(image)
+                os.remove(path)
+
+def resize_large_images(folder_path):
+    # Temporary raise the maximum image pixels to avoid PIL.Image.DecompressionBombError
+    PIL.Image.MAX_IMAGE_PIXELS = 933120000
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+    max_res = 3840 * 2160
+    for filename in os.listdir(folder_path):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.JPEG')):
+            path = f"{folder_path}/{filename}"
+            image = Image.open(path).convert("RGB")
+            tensor = F.pil_to_tensor(image)
+
+            current_res = tensor.shape[1] * tensor.shape[2]
+
+            if current_res > max_res:
+                scale = (max_res / current_res) ** 0.5
+                tensor = F.resize(tensor, (int(tensor.shape[1] * scale), int(tensor.shape[2] * scale)))
+                image = F.to_pil_image(tensor)
+                image.save(os.path.join(folder_path, filename))
+
+def remove_none_jpeg(folder_path):
+    for filename in os.listdir(folder_path):
+        if filetype.guess(f"{folder_path}/{filename}").extension != "jpg":
+            os.remove(f"{folder_path}/{filename}")
