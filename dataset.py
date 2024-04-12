@@ -56,6 +56,14 @@ class ColorDataset(torch.utils.data.Dataset):
 
         images = fn.resize(images, size=(248, 248))
 
+        # By default this function output layout is CHW which will make the program crash with 
+        # SIGSEGV (Address boundary error) because rgb2lab needs HWC
+        images = fn.crop_mirror_normalize(images, 
+                                        dtype=types.FLOAT,
+                                        output_layout="HWC",
+                                        mean=[0.485, 0.456, 0.406], 
+                                        std=[0.229, 0.224, 0.225])
+
         images = fn.python_function(images, function=rgb2lab)
 
         images = fn.transpose(images, perm=[2, 0, 1])
@@ -118,5 +126,14 @@ class StyleDataset(torch.utils.data.Dataset):
 
         content_images = fn.transpose(content_images, perm=[2, 0, 1])
         style_images = fn.transpose(style_images, perm=[2, 0, 1])
+
+        content_images = fn.crop_mirror_normalize(content_images, 
+                                        dtype=types.FLOAT,
+                                        mean=[0.485, 0.456, 0.406], 
+                                        std=[0.229, 0.224, 0.225])
+        style_images = fn.crop_mirror_normalize(style_images, 
+                                        dtype=types.FLOAT,
+                                        mean=[0.485, 0.456, 0.406], 
+                                        std=[0.229, 0.224, 0.225])
 
         return content_images, style_images
