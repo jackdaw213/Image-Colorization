@@ -17,14 +17,14 @@ class AdaINLoss(nn.Module):
         self._lambda = _lambda
 
     def contentLoss(self, vgg_out, adain_out):
-        return torch.norm(vgg_out - adain_out)
+        return F.mse_loss(vgg_out, adain_out)
 
     def styleLoss(self, vgg_out_features, style_features):
         mean_sum = 0
         std_sum = 0
         for vgg_out, style in zip(vgg_out_features, style_features):
-            mean_sum += torch.norm(torch.mean(vgg_out, dim=(2, 3)) - torch.mean(style, dim=(2, 3)))
-            std_sum += torch.norm(torch.std(vgg_out, dim=(2, 3)) - torch.std(style, dim=(2, 3)))
+            mean_sum += F.mse_loss(torch.mean(vgg_out, dim=(2, 3)), torch.mean(style, dim=(2, 3)))
+            std_sum += F.mse_loss(torch.std(vgg_out, dim=(2, 3), unbiased=False), torch.std(style, dim=(2, 3), unbiased=False))
         return mean_sum + std_sum
 
     def forward(self, vgg_out, adain_out, vgg_out_features, style_features):
