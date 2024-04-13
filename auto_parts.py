@@ -10,15 +10,9 @@ class AdaIN(nn.Module):
         super().__init__()
 
     def forward(self, x, y):
-        # For some reasons the torch.std() uses Bessel’s correction by default so unbiased=False 
-        # is used to make standard deviation "standard". And also keepdims to makes this function
-        # correctly
-        style_std = torch.std(y, dim=(2, 3), unbiased=False, keepdims=True)
-        content_features_mean = x - torch.mean(x, dim=(2, 3), keepdims=True)
-        # Add 1e-6 to avoid dividing by zero which cause AdaIN's output to contain NaN
-        content_std = torch.std(x, dim=(2, 3), unbiased=False, keepdims=True) + 1e-6
-        style_mean = torch.mean(y, dim=(2, 3), keepdims=True)
-        return (style_std * (content_features_mean / content_std) + style_mean)
+        con_mean, con_std = utils.mean_std(x)
+        sty_mean, sty_std = utils.mean_std(y)
+        return (sty_std * ((x - con_mean) / con_std) + sty_mean)
     
 class AdaINLoss(nn.Module):
     def __init__(self, _lambda=1):
@@ -32,8 +26,11 @@ class AdaINLoss(nn.Module):
         mean_sum = 0
         std_sum = 0
         for vgg_out, style in zip(vgg_out_features, style_features):
-            mean_sum += F.mse_loss(torch.mean(vgg_out, dim=(2, 3)), torch.mean(style, dim=(2, 3)))
-            std_sum += F.mse_loss(torch.std(vgg_out, dim=(2, 3), unbiased=False), torch.std(style, dim=(2, 3), unbiased=False))
+            vgg_out_mean, vgg_out_std = utils.mean_std(vgg_out)
+            style_mean, style_std = utils.mean_std(style)
+
+            mean_sum += F.mse_loss(vgg_out_mean, style_mean)
+            std_sum += F.mse_loss(vgg_out_std, style_std)
         return mean_sum + std_sum
 
     def forward(self, vgg_out, adain_out, vgg_out_features, style_features):

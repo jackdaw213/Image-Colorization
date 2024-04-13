@@ -231,6 +231,15 @@ def create_small_dataset(original_folder, target_folder, split_ratio=0.1):
         target_path = os.path.join(target_folder, file_name)
         shutil.copyfile(source_path, target_path)
 
+def mean_std(input):
+    mean = torch.mean(input, dim=(2, 3), keepdims=True)
+    # For some reasons the torch.std() uses Bessel’s correction by default so unbiased=False 
+    # is used to make standard deviation "standard". And also keepdims to makes this function
+    # correctly
+    # Add 1e-6 to avoid dividing by zero which cause AdaIN's output to contain NaN
+    std = torch.std(input, dim=(2, 3), unbiased=False, keepdims=True) + 1e-6
+    return mean, std
+
 def pad_fetures(up, con_channels):
     # We need to pad the features with 0 when we concatenating upscaled 
     # features that were previously downscaled from odd dimension features
