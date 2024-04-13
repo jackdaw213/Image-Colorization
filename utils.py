@@ -269,7 +269,6 @@ def delete_grayscale_images(folder_path):
 def resize_large_images(folder_path):
     # Temporary raise the maximum image pixels to avoid PIL.Image.DecompressionBombError
     PIL.Image.MAX_IMAGE_PIXELS = 933120000
-    ImageFile.LOAD_TRUNCATED_IMAGES = True
 
     max_res = 3840 * 2160
     for filename in os.listdir(folder_path):
@@ -286,7 +285,13 @@ def resize_large_images(folder_path):
                 image = F.to_pil_image(tensor)
                 image.save(os.path.join(folder_path, filename))
 
-def remove_none_jpeg(folder_path):
+# https://stackoverflow.com/questions/33548956/detect-avoid-premature-end-of-jpeg-in-cv2-python
+# This can remove MOST corrupted images from my testing but good enough I guess 
+# Also this method is much faster than Image.open(path).convert("RGB") with try-except
+def remove_corrupted_jpeg(folder_path):
     for filename in os.listdir(folder_path):
-        if filetype.guess(f"{folder_path}/{filename}").extension != "jpg":
-            os.remove(f"{folder_path}/{filename}")
+        path = f"{folder_path}/{filename}"
+        with open(path, 'rb') as f:
+            check_chars = f.read()[-2:]
+            if check_chars != b'\xff\xd9':
+                os.remove(path)
