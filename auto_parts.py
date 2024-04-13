@@ -3,13 +3,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 import utils
 
+# Has anyone ever felt so embarrassed by their commit that they git reset --hard HEAD~1
+# a few times to erase their sins from history, or is it just me ¯\_(ツ)_/¯
 class AdaIN(nn.Module):
     def __init__(self):
         super().__init__()
 
     def forward(self, x, y):
-        temp = torch.std(y, dim=(2, 3)) * ((x.permute([2,3,0,1]) - torch.mean(x, dim=(2, 3))) / torch.std(x, dim=(2, 3))) + torch.mean(y, dim=(2, 3))
-        return temp.permute([2,3,0,1])
+        # For some reasons the torch.std() uses Bessel’s correction by default so unbiased=False 
+        # is used to make standard deviation "standard". And also keepdims to makes this function
+        # correctly
+        style_std = torch.std(y, dim=(2, 3), unbiased=False, keepdims=True)
+        content_features_mean = x - torch.mean(x, dim=(2, 3), keepdims=True)
+        # Add 1e-6 to avoid dividing by zero which cause AdaIN's output to contain NaN
+        content_std = torch.std(x, dim=(2, 3), unbiased=False, keepdims=True) + 1e-6
+        style_mean = torch.mean(y, dim=(2, 3), keepdims=True)
+        return (style_std * (content_features_mean / content_std) + style_mean)
     
 class AdaINLoss(nn.Module):
     def __init__(self, _lambda=1):
