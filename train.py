@@ -57,38 +57,48 @@ def train_style(model, optimizer, loss_func, loader, device):
 
     model.train()
 
-    epoch_loss = torchmetrics.MeanMetric().to(device)
+    content_metric = torchmetrics.MeanMetric().to(device)
+    style_metric = torchmetrics.MeanMetric().to(device)
+    total_metric = torchmetrics.MeanMetric().to(device)
 
     for _, data in enumerate(loader):
         content, style = data[0]['content'], data[0]['style']
 
         vgg_out, adain, vgg_out_features, style_features = model(content, style, training=True)
-        loss = loss_func(vgg_out, adain, vgg_out_features, style_features)
+        content_loss, style_loss = loss_func(vgg_out, adain, vgg_out_features, style_features)
+        total_loss = content_loss + style_loss
 
-        loss.backward()
+        total_loss.backward()
         optimizer.step()
         optimizer.zero_grad()
 
-        epoch_loss(loss)
+        content_metric(content_loss)
+        style_metric(style_loss)
+        total_metric(total_loss)
 
-    return epoch_loss.compute()
+    return content_metric.compute(), style_metric.compute(), total_metric.compute()
 
 def val_style(model, loss_func, loader, device):
 
     model.eval()
 
-    epoch_loss = torchmetrics.MeanMetric().to(device)
+    content_metric = torchmetrics.MeanMetric().to(device)
+    style_metric = torchmetrics.MeanMetric().to(device)
+    total_metric = torchmetrics.MeanMetric().to(device)
 
     for _, data in enumerate(loader):
         content, style = data[0]['content'].float(), data[0]['style'].float()
 
         with torch.no_grad():
             vgg_out, adain, vgg_out_features, style_features = model(content, style, training=True)
-            loss = loss_func(vgg_out, adain, vgg_out_features, style_features)
+            content_loss, style_loss = loss_func(vgg_out, adain, vgg_out_features, style_features)
+            total_loss = content_loss + style_loss
 
-        epoch_loss(loss)
+        content_metric(content_loss)
+        style_metric(style_loss)
+        total_metric(total_loss)
 
-    return epoch_loss.compute()
+    return content_metric.compute(), style_metric.compute(), total_metric.compute()
 
 def train_model(model, optimizer, loss, train_loader, val_loader, project_name, epochs, checkpoint_freq, resume_id):
                 
@@ -129,11 +139,19 @@ def train_model(model, optimizer, loss, train_loader, val_loader, project_name, 
         if isinstance(model, UNetResEncoder):
             train_loss = train_color(cmodel, optimizer, loss, train_loader, device)
             val_loss = val_color(cmodel, loss, val_loader, device)
+            wandb.log({"loss": train_loss, "loss_val": val_loss, "epoch": epoch})
         else:
             train_loss = train_style(cmodel, optimizer, loss, train_loader, device)
             val_loss = val_style(cmodel, loss, val_loader, device)
+            wandb.log({"content_loss": train_loss[0], 
+                       "style_loss": train_loss[1], 
+                       "total_loss": train_loss[2], 
+                       "content_loss_val": val_loss[0], 
+                       "style_loss_val": val_loss[1], 
+                       "total_loss_val": val_loss[2], 
+                       "epoch": epoch})
+
             
-        wandb.log({"loss": train_loss, "loss_val": val_loss, "epoch": epoch})
         
         checkpoint_count = checkpoint_count + 1 
         if checkpoint_count == checkpoint_freq:

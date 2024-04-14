@@ -41,7 +41,7 @@ class AdaINLoss(nn.Module):
             vgg_out_features: Features from encoder 2
             style_features: Features from encoder 1
         """        
-        return self.contentLoss(vgg_out, adain_out) + self._lambda * self.styleLoss(vgg_out_features, style_features)
+        return self.contentLoss(vgg_out, adain_out), self._lambda * self.styleLoss(vgg_out_features, style_features)
 
 class ColorLoss(nn.Module):
     def __init__(self):
