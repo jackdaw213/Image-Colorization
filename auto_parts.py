@@ -132,6 +132,8 @@ class VggDecoderBlock(nn.Module):
             )
         else: # Layer 4
             self.seq = nn.Sequential(
+                # There is no need to concatenate features for layer 4 so upscale is not
+                # going to havle the number of features -> in_channels stays the same
                 nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, padding_mode='reflect'),
                 nn.ReLU()
             )

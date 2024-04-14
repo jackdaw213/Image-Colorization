@@ -69,8 +69,6 @@ class StyleTransfer(nn.Module):
 
         self.adain = ap.AdaIN()
 
-        # There is no need to concatenate features for layer 4 so upscale is not
-        # going to havle the number of features
         self.d4 = ap.VggDecoderBlock(512, 256, 4)
         self.d3 = ap.VggDecoderBlock(256, 128, 3)
         self.d2 = ap.VggDecoderBlock(128, 64, 2)
