@@ -121,19 +121,22 @@ class StyleDataset(torch.utils.data.Dataset):
         content_images = fn.decoders.image(content_images, device="mixed", output_type=types.RGB)
         style_images = fn.decoders.image(style_images, device="mixed", output_type=types.RGB)
 
-        content_images = fn.resize(content_images, size=(248, 248), dtype=types.FLOAT)
-        style_images = fn.resize(style_images, size=(248, 248), dtype=types.FLOAT)
-
-        content_images = fn.transpose(content_images, perm=[2, 0, 1])
-        style_images = fn.transpose(style_images, perm=[2, 0, 1])
+        content_images = fn.resize(content_images, size=512, dtype=types.FLOAT)
+        style_images = fn.resize(style_images, size=512, dtype=types.FLOAT)
 
         content_images = fn.crop_mirror_normalize(content_images, 
-                                        dtype=types.FLOAT,
-                                        mean=[0.485, 0.456, 0.406], 
-                                        std=[0.229, 0.224, 0.225])
+                                                dtype=types.FLOAT,
+                                                crop=(256, 256),
+                                                crop_pos_x=fn.random.uniform(range=(0, 1)),
+                                                crop_pos_y=fn.random.uniform(range=(0, 1)),
+                                                mean=[0.485, 0.456, 0.406], 
+                                                std=[0.229, 0.224, 0.225])
         style_images = fn.crop_mirror_normalize(style_images, 
-                                        dtype=types.FLOAT,
-                                        mean=[0.485, 0.456, 0.406], 
-                                        std=[0.229, 0.224, 0.225])
+                                                dtype=types.FLOAT,
+                                                crop=(256, 256),
+                                                crop_pos_x=fn.random.uniform(range=(0, 1)),
+                                                crop_pos_y=fn.random.uniform(range=(0, 1)),
+                                                mean=[0.485, 0.456, 0.406], 
+                                                std=[0.229, 0.224, 0.225])
 
         return content_images, style_images
