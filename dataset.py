@@ -54,13 +54,16 @@ class ColorDataset(torch.utils.data.Dataset):
         
         images = fn.decoders.image(images, device="mixed", output_type=types.RGB)
 
-        images = fn.resize(images, size=(248, 248))
+        images = fn.resize(images, size=512)
 
         # By default this function output layout is CHW which will make the program crash with 
         # SIGSEGV (Address boundary error) because rgb2lab needs HWC
         images = fn.crop_mirror_normalize(images, 
                                         dtype=types.FLOAT,
                                         output_layout="HWC",
+                                        crop=(256, 256),
+                                        crop_pos_x=fn.random.uniform(range=(0, 1)),
+                                        crop_pos_y=fn.random.uniform(range=(0, 1)),
                                         mean=[0.485, 0.456, 0.406], 
                                         std=[0.229, 0.224, 0.225])
 
@@ -82,7 +85,7 @@ class ColorDataset(torch.utils.data.Dataset):
             # TODO: Change torch method to DALI one because mask gets copied back to RAM 
             # everytime we return it even with device="cuda". I do not know if this is a
             # bug or not
-            mask = (torch.rand((248, 248), device="cuda") > 0.95).float()
+            mask = (torch.rand((256, 256), device="cuda") > 0.95).float()
             black = fn.cat(black, color * mask, axis=0)
         else:
             # Input is gray scale image with 1 channel, resnet needs 3 so we need
