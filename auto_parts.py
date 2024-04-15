@@ -15,7 +15,7 @@ class AdaIN(nn.Module):
         return (sty_std * ((x - con_mean) / con_std) + sty_mean)
     
 class AdaINLoss(nn.Module):
-    def __init__(self, _lambda=1):
+    def __init__(self, _lambda=7.5):
         super().__init__()
         self._lambda = _lambda
 
