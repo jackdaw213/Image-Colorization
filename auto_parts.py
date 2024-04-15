@@ -108,7 +108,6 @@ class VggDecoderBlock(nn.Module):
 
         # In the paper the author uses upsampling instead of conv transpose
         self.up_scale = nn.Upsample(scale_factor=2, mode='nearest')
-
         # So the default decoder above uses transpose which halve the number of channels
         # But we use upsample here so the number of input channels needs to be doubled except 
         # for layer 4 since we do not concatenate anything at this layer
@@ -139,8 +138,8 @@ class VggDecoderBlock(nn.Module):
             )
 
     def forward(self, inp, con_channels):
-        inp = self.up_scale(inp)
         if con_channels is not None:
+            inp = self.up_scale(inp)
             inp = utils.pad_fetures(inp, con_channels)
             inp = torch.cat([inp, con_channels], dim=1)
         return self.seq(inp)
