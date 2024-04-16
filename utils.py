@@ -155,6 +155,19 @@ def load_train_state(path):
             print(e)
             sys.exit("Backup train state failed, existing")
 
+def norm(tensor):
+    return F.normalize(tensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
+def norm_pil(image):
+    ten = F.to_tensor(image)
+    return norm(ten)
+
+def denorm(tensor):
+    std = torch.Tensor([0.229, 0.224, 0.225]).reshape(-1, 1, 1)
+    mean = torch.Tensor([0.485, 0.456, 0.406]).reshape(-1, 1, 1)
+    res = torch.clamp(tensor * std + mean, 0, 1)
+    return res
+
 def split_images(input_folder, output_folder, train_ratio=0.8, val_ratio=0.15, test_ratio=0.05):
     if train_ratio + val_ratio + test_ratio != 1:
         raise ValueError("Ratio sum must be 1")
