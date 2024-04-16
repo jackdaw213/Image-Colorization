@@ -44,8 +44,8 @@ def l_ab_to_rgb(l, ab):
     img = lab2rgb(img.permute(1, 2, 0))
     return img
 
-def rgb_to_l_ab(image_path):
-    img = torch.from_numpy(rgb2lab(read_image(image_path).permute(1, 2, 0))).permute(2, 0, 1)
+def rgb_to_l_ab(rgb):
+    img = torch.from_numpy(rgb2lab(rgb)).permute(2, 0, 1)
     ab = img[1:, :, :]
     l = img[0, :, :].unsqueeze(0) # Add the channels dimension 
     return l, ab
@@ -249,13 +249,13 @@ def pad_fetures(up, con_channels):
 def list_images(folder_path):
     temp = []
     for filename in os.listdir(folder_path):
-        if filename.endswith(('.png', '.jpg', '.jpeg', '.JPEG')):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
             temp.append(filename)
     return temp
 
 def delete_grayscale_images(folder_path):
     for filename in os.listdir(folder_path):
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.JPEG')):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
             path = f"{folder_path}/{filename}"
             image = Image.open(path).convert("RGB")
 
@@ -274,7 +274,7 @@ def resize_large_images(folder_path):
 
     max_res = 3840 * 2160
     for filename in os.listdir(folder_path):
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.JPEG')):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
             path = f"{folder_path}/{filename}"
             image = Image.open(path).convert("RGB")
             tensor = F.pil_to_tensor(image)
