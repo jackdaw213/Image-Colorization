@@ -56,16 +56,31 @@ class ColorDataset(torch.utils.data.Dataset):
 
         images = fn.resize(images, size=512)
 
-        # By default this function output layout is CHW which will make the program crash with 
-        # SIGSEGV (Address boundary error) because rgb2lab needs HWC
+        """
+        By default this function output layout is CHW which will cause the program crash with 
+        SIGSEGV (Address boundary error) because rgb2lab needs HWC
+
+        Pytorch ToTensor() transform brings the image to [0, 1] range then Normalize() 
+        transform normalizes it [1*]. But nvidia dali doesn't have ToTensor() or bring 
+        images to [0, 1] range automatically. Therefore we need to multiply the mean and 
+        std with 255 because images are in [0, 255] range [2*]
+        [1*]: https://discuss.pytorch.org/t/does-pytorch-automatically-normalizes-image-to-0-1/40022/2
+        [2*]: https://github.com/NVIDIA/DALI/issues/4850#issuecomment-1545267530
+
+        Rant: This goddamn bug cost me 5 fricking days to figure it out. FIVE days of 
+        looking at other projects online, checking adain/loss function output, checking
+        if the model is functioning properly, testing out different model configurations, etc. 
+        I was defeated and was about to give up but mama ain't raised a B- losser. So I 
+        gathered all of my A+ winner energy and found the above
+        """
         images = fn.crop_mirror_normalize(images, 
                                         dtype=types.FLOAT,
                                         output_layout="HWC",
                                         crop=(256, 256),
                                         crop_pos_x=fn.random.uniform(range=(0, 1)),
                                         crop_pos_y=fn.random.uniform(range=(0, 1)),
-                                        mean=[0.485, 0.456, 0.406], 
-                                        std=[0.229, 0.224, 0.225])
+                                        mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
+                                        std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
 
         images = fn.python_function(images, function=rgb2lab)
 
@@ -74,7 +89,7 @@ class ColorDataset(torch.utils.data.Dataset):
         color = images[1:, :, :]
         black = fn.expand_dims(images[0, :, :], axes=0)
 
-        # If color_peak is true then we will feed the model with color information
+        # If color_peak is True then we will feed the model with color information
         # False if we want only the chrominance information
         if color_peak:
             # In the paper the author feeds the model a peek of the color of the image
@@ -88,7 +103,7 @@ class ColorDataset(torch.utils.data.Dataset):
             mask = (torch.rand((256, 256), device="cuda") > 0.95).float()
             black = fn.cat(black, color * mask, axis=0)
         else:
-            # Input is gray scale image with 1 channel, resnet needs 3 so we need
+            # Input is gray scale image with 1 channel, vgg19 needs 3 so we need
             # to pad the image with extra 2 channels of 0
             black = F.pad(black, (0, 0, 0, 0, 1, 1), mode='constant', value=0)
 
@@ -132,14 +147,14 @@ class StyleDataset(torch.utils.data.Dataset):
                                                 crop=(256, 256),
                                                 crop_pos_x=fn.random.uniform(range=(0, 1)),
                                                 crop_pos_y=fn.random.uniform(range=(0, 1)),
-                                                mean=[0.485, 0.456, 0.406], 
-                                                std=[0.229, 0.224, 0.225])
+                                                mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
+                                                std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
         style_images = fn.crop_mirror_normalize(style_images, 
                                                 dtype=types.FLOAT,
                                                 crop=(256, 256),
                                                 crop_pos_x=fn.random.uniform(range=(0, 1)),
                                                 crop_pos_y=fn.random.uniform(range=(0, 1)),
-                                                mean=[0.485, 0.456, 0.406], 
-                                                std=[0.229, 0.224, 0.225])
+                                                mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
+                                                std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
 
         return content_images, style_images
