@@ -20,43 +20,23 @@ import PIL
 from PIL import ImageFile
 import torchvision.transforms.functional as F
 
-def compare_img(img, size=(20, 6)):
-    inp, out, ground = img
+def image_grid(**kwargs):
+    col_names = list(kwargs.keys())
+    num_rows = len(kwargs[col_names[0]])
+    num_cols = len(col_names)
 
-    plt.figure(figsize=size)
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(12, 9))
 
-    plt.subplot(1, 3, 1)
-    plt.imshow(inp)
-    plt.title("Input")
-
-    plt.subplot(1, 3, 2)
-    plt.imshow(out)
-    plt.title("Output")
-
-    plt.subplot(1, 3, 3)
-    plt.imshow(ground)
-    plt.title("Ground")
-
-    plt.show()
-
-def compare_img_table(image_list, num_samples, size=(20, 20)):
-    plt.figure(figsize=size)
-    plt.rcParams['figure.dpi'] = 120
-    for i in range(len(image_list)):
-        inp, out, ground = image_list[i]
-
-        plt.subplot(num_samples, 3, i * 2 + 1 + i)
-        plt.axis('off') 
-        plt.imshow(inp)
-
-        plt.subplot(num_samples, 3, i * 2 + 2 + i)
-        plt.axis('off') 
-        plt.imshow(out)
-
-        plt.subplot(num_samples, 3, i * 2 + 3 + i)
-        plt.axis('off') 
-        plt.imshow(ground)
-
+    for row in range(num_rows):
+        for col in range(num_cols):
+            ax = axs[row, col]
+            if row == 0:
+                ax.set_title(col_names[col])
+            ax.imshow(kwargs[col_names[col]][row])
+            ax.axis('off')
+            
+    # Adjust layout
+    plt.tight_layout()
     plt.show()
 
 def l_ab_to_rgb(l, ab):
