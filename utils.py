@@ -61,6 +61,7 @@ def test_color_model(model, test_images_path, num_samples=8):
 
         ground_truth.append(pil_img)
 
+        pil_img = F.to_tensor(pil_img).permute(1, 2, 0)
         l, ab = rgb_to_l_ab(pil_img)
 
         mask = (torch.rand((ab.shape[1], ab.shape[2])) > 0.95).float()
