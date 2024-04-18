@@ -165,10 +165,24 @@ class OutConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
 
+        """
+        So there is a bug that has been plaguing this project from the start: the model can NOT 
+        output green (sometimes blue color). At first, I thought it was because my model was 
+        trash and I didn't have enough data for the model. So I added ResNet34 as an encoder 
+        and used ImageNet as the dataset, the same problem still exists. Until yesterday, I 
+        decided to print out the ab channels of the input image and the model output to compare. 
+        And I noticed that the ab channels from the input have negative values, while the model 
+        output has lots of zeros. A quick Google search and... ab channels have the range of 
+        [−128, 127] where NEGATIVE values represent GREEN AND BLUE. And guess what was the final 
+        layer of OutConv? A goddamn ReLU().
+        I removed it, and now the model can output green and blue. :D
+        
+        PS: I was actually considering using LeakyReLU() but then realized that LeakyReLU with
+        slope of 1 is exactly not having an activation function at all
+        """
         self.seq = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=1, padding=0),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU()
+            nn.BatchNorm2d(out_channels)
         )
         
     def forward(self, inp):
