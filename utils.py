@@ -150,27 +150,33 @@ def denorm(tensor):
 
 def mean_std(input):
     mean = torch.mean(input, dim=(2, 3), keepdims=True)
-    # For some reasons the torch.std() uses Bessel’s correction by default so unbiased=False 
-    # is used to make standard deviation "standard". And also keepdims to makes this function
-    # correctly
-    # Add 1e-6 to avoid dividing by zero which cause AdaIN's output to contain NaN
+    """
+    For some reasons the torch.std() uses Bessel’s correction by default so unbiased=False 
+    is used to make standard deviation "standard". And also keepdims to makes this function
+    correctly
+    Add 1e-6 to avoid dividing by zero which cause AdaIN's output to contain NaN
+    """
     std = torch.std(input, dim=(2, 3), unbiased=False, keepdims=True) + 1e-6
     return mean, std
 
 def pad_fetures(up, con_channels):
-    # We need to pad the features with 0 when we concatenating upscaled 
-    # features that were previously downscaled from odd dimension features
-    # For example: 25 -> down -> 12 -> up -> 24 -> pad -> 25
+    """
+    We need to pad the features with 0 when we concatenating upscaled 
+    features that were previously downscaled from odd dimension features
+    For example: 25 -> down -> 12 -> up -> 24 -> pad -> 25
+    """
     diffY = con_channels.size()[2] - up.size()[2]
     diffX = con_channels.size()[3] - up.size()[3]
     up = torch.nn.functional.pad(up, [diffX // 2, diffX - diffX // 2,
                                     diffY // 2, diffY - diffY // 2])
     return up
 
-# Instead of creating a labels file, we can just pass a list of files to the 
-# decoder via files argument. And it does not take too much time either (2s 
-# from my testing)
 def list_images(folder_path):
+    """
+    Instead of creating a labels file, we can just pass a list of files to the 
+    decoder via files argument. And it does not take too much time either (2s 
+    from my testing)
+    """
     temp = []
     for filename in os.listdir(folder_path):
         if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
@@ -211,10 +217,12 @@ def resize_large_images(folder_path):
                 image = F.to_pil_image(tensor)
                 image.save(os.path.join(folder_path, filename))
 
-# https://stackoverflow.com/questions/33548956/detect-avoid-premature-end-of-jpeg-in-cv2-python
-# This can remove MOST corrupted images from my testing but good enough I guess 
-# Also this method is much faster than Image.open(path).convert("RGB") with try-except
 def remove_corrupted_jpeg(folder_path):
+    """
+    https://stackoverflow.com/questions/33548956/detect-avoid-premature-end-of-jpeg-in-cv2-python
+    This can remove MOST corrupted images from my testing but good enough I guess 
+    Also this method is much faster than Image.open(path).convert("RGB") with try-except
+    """
     for filename in os.listdir(folder_path):
         path = f"{folder_path}/{filename}"
         with open(path, 'rb') as f:

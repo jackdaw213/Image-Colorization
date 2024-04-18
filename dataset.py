@@ -84,14 +84,16 @@ class ColorDataset(torch.utils.data.Dataset):
         # If color_peak is True then we will feed the model with color information
         # False if we want only the chrominance information
         if color_peak:
-            # In the paper the author feeds the model a peek of the color of the image
-            # to force the network to complete the ab information. How much information
-            # about the color channel is given to the network is unknown as it does not 
-            # mention by the author. So I will give the network only 5% of the information
+            """
+            In the paper the author feeds the model a peek of the color of the image
+            to force the network to complete the ab information. How much information
+            about the color channel is given to the network is unknown as it does not 
+            mention by the author. So I will give the network only 5% of the information
 
-            # TODO: Change torch method to DALI one because mask gets copied back to RAM 
-            # everytime we return it even with device="cuda". I do not know if this is a
-            # bug or not
+            TODO: Change torch method to DALI one because mask gets copied back to RAM 
+            everytime we return it even with device="cuda". I do not know if this is a
+            bug or not
+            """
             mask = (torch.rand((256, 256), device="cuda") > 0.95).float()
             black = fn.cat(black, color * mask, axis=0)
         else:
@@ -100,12 +102,14 @@ class ColorDataset(torch.utils.data.Dataset):
             black = F.pad(black, (0, 0, 0, 0, 1, 1), mode='constant', value=0)
 
         return black, color, mask
-    
-# So the dataset I'm using for style representation is this one https://www.kaggle.com/c/painter-by-numbers/data
-# There are some problems with it, the first thing is that there are some gif images with jpg extention which 
-# DALI does not like. Second, there are some images with monsterous resolution hiding inside the dataset, the 
-# largest one I found was 30000x29605 - 220MB (⌐■_■) ( •_•)>⌐■-■. These images makes the program crashed with 
-# OOM error which confused me a bit tbh, thought it was because of a bug in my dali_pipeline
+
+"""
+So the dataset I'm using for style representation is this one https://www.kaggle.com/c/painter-by-numbers/data
+There are some problems with it, the first thing is that there are some gif images with jpg extention which 
+DALI does not like. Second, there are some images with monsterous resolution hiding inside the dataset, the 
+largest one I found was 30000x29605 - 220MB (⌐■_■) ( •_•)>⌐■-■. These images makes the program crashed with 
+OOM error which confused me a bit tbh, thought it was because of a bug in my dali_pipeline
+"""
 class StyleDataset(torch.utils.data.Dataset):
     def __init__(self):
         pass
