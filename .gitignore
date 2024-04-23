@@ -7,7 +7,7 @@
 /.conda
 /model
 /__pycache__
-/test.py
+/test_.py
 /wandb
 /cufile.log
 /.vscode
