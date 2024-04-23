@@ -99,7 +99,8 @@ class ColorDataset(torch.utils.data.Dataset):
         else:
             # Input is gray scale image with 1 channel, vgg19 needs 3 so we need
             # to pad the image with extra 2 channels of 0
-            black = F.pad(black, (0, 0, 0, 0, 1, 1), mode='constant', value=0)
+            black = fn.cat(black, torch.zeros(2, 256, 256), axis=0)
+            mask = torch.zeros((256, 256), device="cuda").float()
 
         return black, color, mask
 
