@@ -35,9 +35,12 @@ def image_grid(**kwargs):
 def l_ab_to_rgb(l, ab):
     img = torch.cat([l, ab], 0)
     img = lab2rgb(img.permute(1, 2, 0))
-    return img
+    img = torch.from_numpy(img)
+    return img.permute(2, 0, 1)
 
 def rgb_to_l_ab(rgb):
+    if isinstance(rgb, torch.Tensor):
+        rgb = rgb.permute(1, 2, 0)
     img = torch.from_numpy(rgb2lab(rgb)).permute(2, 0, 1)
     ab = img[1:, :, :]
     l = img[0, :, :].unsqueeze(0) # Add the channels dimension 
@@ -61,7 +64,7 @@ def test_color_model(model, test_images_path, num_samples=8):
 
         ground_truth.append(pil_img)
 
-        pil_img = F.to_tensor(pil_img).permute(1, 2, 0)
+        pil_img = F.to_tensor(pil_img)
         l, ab = rgb_to_l_ab(pil_img)
 
         mask = (torch.rand((ab.shape[1], ab.shape[2])) > 0.95).float()
@@ -76,10 +79,10 @@ def test_color_model(model, test_images_path, num_samples=8):
             out = model(inp)
         out = out.squeeze(0)
         ab = ab.squeeze(0)
-        output.append(l_ab_to_rgb(l, out))
+        output.append(l_ab_to_rgb(l, out).permute(1, 2, 0))
 
     image_grid(Input=input, Output=output, Ground_Truth=ground_truth)     
-
+    
 def test_style_model(model, con_images_path, sty_images_path, num_samples=8):
     cons = os.listdir(con_images_path)
     cons = np.random.choice(cons, num_samples, replace=False)
