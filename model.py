@@ -153,22 +153,16 @@ class UNetResEncoder(nn.Module):
         # Need to wrap this in a module list or else cuda() will not work
         self.resnet_layers = nn.ModuleList(resnet_layers)
 
-        self.ls = ap.LatentSpace(512, 1024)
+        self.ls = ap.LatentSpace(512, 512)
 
-        self.d6 = ap.DecoderBlock(1024, 512)
-        self.d5 = ap.DecoderBlock(512, 256)
-        self.d4 = ap.DecoderBlock(256, 128)
-        self.d3 = ap.DecoderBlock(128, 64)
-        # This will take features from the last decoder block (up_in 64) halve it
-        # to 32 concatenates with the features from the encoder block (in 32 + 64)
-        # and outputs (out 64) features
-        self.d2 = ap.DecoderBlock(in_channels=32 + 64, out_channels=64, 
-                                  up_in_channels=64, up_out_channels=32)
-        # For this one, 3 means the input image 
-        self.d1 = ap.DecoderBlock(in_channels=32 + 3, out_channels=64, 
-                                  up_in_channels=64, up_out_channels=32)
+        self.d6 = ap.DecoderBlock(512, 256)
+        self.d5 = ap.DecoderBlock(256, 128)
+        self.d4 = ap.DecoderBlock(128, 64)
+        self.d3 = ap.DecoderBlock(64, 64)
+        self.d2 = ap.DecoderBlock(64, 64)
+        self.d1 = ap.DecoderBlock(64, 32, 3)
 
-        self.out = ap.OutConv(64, 2)
+        self.out = ap.OutConv(32, 2)
 
     def forward(self, x):
         inp = x
@@ -187,7 +181,7 @@ class UNetResEncoder(nn.Module):
         x = self.d5(x, features_dict["layer3"])
         x = self.d4(x, features_dict["layer2"])
         x = self.d3(x, features_dict["layer1"])
-        x = self.d2(x, features_dict["layer0"])
+        x = self.d2(x, features_dict["layer0"]) # 7x7 convolution
         x = self.d1(x, inp)
 
         return self.out(x)

@@ -75,18 +75,20 @@ class EncoderBlock(nn.Module):
         return features, down 
 
 class DecoderBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, up_in_channels=None, up_out_channels=None, kernel_size=3, padding=1):
+    def __init__(self, in_channels, out_channels, input_channels=False, kernel_size=3, padding=1):
         super().__init__()
 
-        if up_in_channels is None or up_out_channels is None:
-            up_in_channels = in_channels
-            up_out_channels = in_channels // 2 # Upscale and halve the number of features
+        self.up_scale = nn.Upsample(scale_factor=2, mode='nearest')
 
-        self.trans_conv = nn.ConvTranspose2d(up_in_channels, up_out_channels, kernel_size=3, stride=2)
+        if not input_channels:
+            # We double the number of channels because we are going to concatenating an equal 
+            # number of channels from the encoder block
+            in_channels = in_channels * 2
+        else:
+            # Or we concatenating with the input image
+            in_channels = in_channels + input_channels
 
         self.seq = nn.Sequential(
-            # so that when we concat the encoder block's features
-            # the amount of input features stays the same
             nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
@@ -97,7 +99,7 @@ class DecoderBlock(nn.Module):
         )
 
     def forward(self, inp, con_channels):
-        up = self.trans_conv(inp)
+        up = self.up_scale(inp)
         up = utils.pad_fetures(up, con_channels)
         cat = torch.cat([up, con_channels], dim=1)
         return self.seq(cat)
@@ -180,10 +182,20 @@ class OutConv(nn.Module):
         PS: I was actually considering using LeakyReLU() but then realized that LeakyReLU with
         slope of 1 is exactly not having an activation function at all
         """
-        self.seq = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1, padding=0),
-            nn.BatchNorm2d(out_channels)
-        )
+
+        """
+        Another story for future me (or anyone reading this). When I removed the ReLU() layer, I 
+        was wayyyy to excited and did not notice the BatchNorm2d() layer chilling here. This cause 
+        the network to output images with horizontal red lines all over the place. This is quite 
+        an odd case because the lines became more visible after each epoch. At first I thought it 
+        might be due to the TransConv layer causing checkerboard effect [1*] (was not the case). 
+        And tried to replace it with NN Upsample and redesigned the model class a bit which cut the 
+        training time by around 30 minutes with similar and sometime slightly better quality output 
+        (probably just a placebo effect).
+
+        [1*]: https://distill.pub/2016/deconv-checkerboard/
+        """
+        self.out = nn.Conv2d(in_channels, out_channels, kernel_size=1, padding=0)
         
     def forward(self, inp):
-        return self.seq(inp)
+        return self.out(inp)
