@@ -159,8 +159,8 @@ class UNetResEncoder(nn.Module):
         self.d5 = ap.DecoderBlock(256, 128)
         self.d4 = ap.DecoderBlock(128, 64)
         self.d3 = ap.DecoderBlock(64, 64)
-        self.d2 = ap.DecoderBlock(64, 64)
-        self.d1 = ap.DecoderBlock(64, 32, 3)
+        self.d2 = ap.DecoderBlock(64, 32)
+        self.d1 = ap.DecoderBlock(32, 32, 3)
 
         self.out = ap.OutConv(32, 2)
 
