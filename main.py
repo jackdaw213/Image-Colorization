@@ -12,12 +12,14 @@ import utils
 
 MODEL = "color"
 COLOR_PEAK = True
-NUM_EPOCHS = 100
-BATCH_SIZE = 32
+NUM_EPOCHS = 10
+BATCH_SIZE = 8
 NUM_WORKERS = 4
 
-TRAIN_DIR = "data/train"
-VAL_DIR = "data/val"
+TRAIN_DIR = "data/train_color"
+VAL_DIR = "data/val_color"
+TRAIN_DIR_CONTENT = "data/train_content"
+VAL_DIR_CONTENT = "data/val_content"
 TRAIN_DIR_STYLE = "data/train_style"
 VAL_DIR_STYLE = "data/val_style"
 
@@ -53,16 +55,24 @@ parser.add_argument('-nw' ,'--num_workers', type=int,
 
 parser.add_argument('-td', '--train_dir', type=str,
                     default=TRAIN_DIR,
-                    help='Path to the train image folder')
+                    help='Path to the color model train image folder')
 parser.add_argument('-vd', '--val_dir', type=str,
                     default=VAL_DIR,
-                    help='Path to the style validation image folder')
+                    help='Path to the color model validation image folder')
+
+parser.add_argument('-tdc', '--train_dir_content', type=str,
+                    default=TRAIN_DIR_CONTENT,
+                    help='Path to the style model train_content image folder')
+parser.add_argument('-vdc', '--val_dir_content', type=str,
+                    default=VAL_DIR_CONTENT,
+                    help='Path to the style model val_content image folder')
+
 parser.add_argument('-tds', '--train_dir_style', type=str,
                     default=TRAIN_DIR_STYLE,
-                    help='Path to the train image folder')
+                    help='Path to the style model train_style image folder')
 parser.add_argument('-vds', '--val_dir_style', type=str,
                     default=VAL_DIR_STYLE,
-                    help='Path to the style validation image folder')
+                    help='Path to the style model val_style image folder')
 
 parser.add_argument('-op', '--optimizer', type=str,
                     default=OPTIMIZER,
@@ -122,7 +132,7 @@ if args.enable_dali:
         )
     else:
         train_loader = DALIGenericIterator(
-            [dataset.StyleDataset.dali_pipeline(content_dir=args.train_dir,
+            [dataset.StyleDataset.dali_pipeline(content_dir=args.train_dir_content,
                                                 style_dir=args.train_dir_style,
                                                 batch_size=args.batch_size,
                                                 num_threads=args.num_workers)],
@@ -131,7 +141,7 @@ if args.enable_dali:
         )
 
         val_loader = DALIGenericIterator(
-            [dataset.StyleDataset.dali_pipeline(content_dir=args.val_dir,
+            [dataset.StyleDataset.dali_pipeline(content_dir=args.val_dir_content,
                                                 style_dir=args.val_dir_style,
                                                 batch_size=args.batch_size,
                                                 num_threads=args.num_workers)],
