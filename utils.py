@@ -116,11 +116,12 @@ def test_style_model(model, con_images_path, sty_images_path, num_samples=8):
 
     image_grid(Content=con_images, Style=sty_images, Output=output)            
 
-def save_train_state(model, optimizer, epoch, path):
+def save_train_state(model, optimizer, scaler, epoch, path):
     # This one is for resuming training
     torch.save({
     'model': model.state_dict(),
     'optimizer': optimizer.state_dict(),
+    'scaler': scaler.state_dict(),
     'epoch': epoch
     }, path)
 
@@ -128,16 +129,17 @@ def save_train_state(model, optimizer, epoch, path):
     torch.save({
     'model': model.state_dict(),
     'optimizer': optimizer.state_dict(),
+    'scaler': scaler.state_dict(),
     'epoch': epoch
     }, path)
 
 def load_train_state(path):
     try:
         state = torch.load(path)
-        return state["model"], state["optimizer"], state["epoch"]
+        return state["model"], state["optimizer"], state["scaler"], state["epoch"]
     except Exception as e:
         print(e)
-        sys.exit("Backup train state failed, existing")
+        sys.exit("Loading train state failed, existing")
 
 def norm(tensor):
     return F.normalize(tensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

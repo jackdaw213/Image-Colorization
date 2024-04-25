@@ -29,13 +29,12 @@ DALI, no AMP, no pretrained encoder, and the training time was about 3 DAYS. Now
 [5*]: https://discuss.pytorch.org/t/nan-loss-with-torch-cuda-amp-and-crossentropyloss/108554/19
 """
 
-def train_color(model, optimizer, loss_func, loader, device, args):
+def train_color(model, optimizer, scaler, loss_func, loader, device, args):
 
     model.train()
 
     epoch_loss = torchmetrics.MeanMetric().to(device)
 
-    scaler = torch.cuda.amp.GradScaler(enabled=args.enable_amp)
     if args.amp_dtype == "bf16":
         dtype = torch.bfloat16
     else:
@@ -87,7 +86,7 @@ def val_color(model, loss_func, loader, device, args):
 
     return epoch_loss.compute()
 
-def train_style(model, optimizer, loss_func, loader, device, args):
+def train_style(model, optimizer, scaler, loss_func, loader, device, args):
 
     model.train()
 
@@ -95,7 +94,6 @@ def train_style(model, optimizer, loss_func, loader, device, args):
     style_metric = torchmetrics.MeanMetric().to(device)
     total_metric = torchmetrics.MeanMetric().to(device)
 
-    scaler = torch.cuda.amp.GradScaler(enabled=args.enable_amp)
     if args.amp_dtype == "bf16":
         dtype = torch.bfloat16
     else:
@@ -159,6 +157,7 @@ def train_model(model, optimizer, loss, train_loader, val_loader, args):
     init_epoch = 0
     loss.to(device)
     project_name = "Colorization" if args.model == "color" else "StyleTransfer"
+    scaler = torch.cuda.amp.GradScaler(enabled=args.enable_amp)
 
     config = {
     "model": model.__class__.__name__,
@@ -169,13 +168,14 @@ def train_model(model, optimizer, loss, train_loader, val_loader, args):
     }
 
     if args.resume_id is not None:
-        model_, optimizer_, epoch_ = utils.load_train_state("model/train.state")
+        model_, optimizer_, scaler_, epoch_ = utils.load_train_state("model/train.state")
 
         model.load_state_dict(model_)
         cmodel = torch.compile(model, mode="reduce-overhead")
         cmodel.to(device)
 
         optimizer.load_state_dict(optimizer_)
+        scaler.load_state_dict(scaler_)
 
         init_epoch = epoch_ + 1 # PLus 1 means start at the next epoch
         run = wandb.init(project=project_name, config=config, id=args.resume_id, resume=True)
@@ -186,11 +186,11 @@ def train_model(model, optimizer, loss, train_loader, val_loader, args):
 
     for epoch in tq.tqdm(range(init_epoch, args.epochs), total=args.epochs, desc='Epochs', initial=init_epoch):
         if isinstance(model, UNetResEncoder):
-            train_loss = train_color(cmodel, optimizer, loss, train_loader, device, args)
+            train_loss = train_color(cmodel, optimizer, scaler, loss, train_loader, device, args)
             val_loss = val_color(cmodel, loss, val_loader, device, args)
             wandb.log({"loss": train_loss, "loss_val": val_loss, "epoch": epoch})
         else:
-            train_loss = train_style(cmodel, optimizer, loss, train_loader, device, args)
+            train_loss = train_style(cmodel, optimizer, scaler, loss, train_loader, device, args)
             val_loss = val_style(cmodel, loss, val_loader, device, args)
             wandb.log({"content_loss": train_loss[0], 
                        "style_loss": train_loss[1], 
@@ -202,7 +202,7 @@ def train_model(model, optimizer, loss, train_loader, val_loader, args):
         
         checkpoint_count = checkpoint_count + 1 
         if checkpoint_count == args.checkpoint_freq:
-            utils.save_train_state(model, optimizer, epoch, "model/train.state")
+            utils.save_train_state(model, optimizer, scaler, epoch, "model/train.state")
             checkpoint_count = 0
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             print(f"Saved checkpoint at epoch: {epoch + 1} ({now})")
