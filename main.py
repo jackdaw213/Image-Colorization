@@ -28,9 +28,11 @@ LEARNING_RATE = 0.00005
 MOMENTUM = 0.6
 
 RESUME_ID = None
-CHECKPOINT_FREQ = 5
+CHECKPOINT_FREQ = 1
 
 ENABLE_DALI = True
+ENABLE_AMP = True
+AMP_TYPE = "bf16"
 DATA_AUGMENTATION = True
 SPICY_PYTORCH_FLAGS = True
 
@@ -95,6 +97,13 @@ parser.add_argument('-cf', '--checkpoint_freq', type=int,
 parser.add_argument('-dali', '--enable_dali', type=bool,
                     default=ENABLE_DALI,
                     help='Enable DALI for faster data loading')
+parser.add_argument('-amp', '--enable_amp', type=bool,
+                    default=ENABLE_AMP,
+                    help='Enable Mixed Precision for faster training and lower memory usage')
+parser.add_argument('-ampt', '--amp_dtype', type=str,
+                    default=AMP_TYPE,
+                    help='Set dtype for amp',
+                    choices=["bf16", "fp16"])
 parser.add_argument('-da', '--data_augmentation', type=bool,
                     default=DATA_AUGMENTATION,
                     help='Enable data augmentation during training')
@@ -108,7 +117,7 @@ if args.spicy_pytorch_flags:
     torch.backends.cudnn.allow_tf32 = True
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.benchmark = True
-    torch.set_float32_matmul_precision("high")
+    torch.set_float32_matmul_precision("medium")
 
 print("Init dataloader")
 if args.enable_dali:
@@ -117,7 +126,8 @@ if args.enable_dali:
             [dataset.ColorDataset.dali_pipeline(image_dir=args.train_dir,
                                                 color_peak=args.color_peak,
                                                 batch_size=args.batch_size,
-                                                num_threads=args.num_workers)],
+                                                num_threads=args.num_workers,
+                                                prefetch_queue_depth=4 if args.enable_amp else 2)],
             ['black', 'color', 'mask'],
             reader_name='Reader'
         )
@@ -126,7 +136,8 @@ if args.enable_dali:
             [dataset.ColorDataset.dali_pipeline(image_dir=args.val_dir,
                                                 color_peak=args.color_peak,
                                                 batch_size=args.batch_size,
-                                                num_threads=args.num_workers)],
+                                                num_threads=args.num_workers,
+                                                prefetch_queue_depth=4 if args.enable_amp else 2)],
             ['black', 'color', 'mask'],
             reader_name='Reader'
         )
@@ -135,7 +146,8 @@ if args.enable_dali:
             [dataset.StyleDataset.dali_pipeline(content_dir=args.train_dir_content,
                                                 style_dir=args.train_dir_style,
                                                 batch_size=args.batch_size,
-                                                num_threads=args.num_workers)],
+                                                num_threads=args.num_workers,
+                                                prefetch_queue_depth=4 if args.enable_amp else 2)],
             ['content', 'style'],
             reader_name='Reader'
         )
@@ -144,7 +156,8 @@ if args.enable_dali:
             [dataset.StyleDataset.dali_pipeline(content_dir=args.val_dir_content,
                                                 style_dir=args.val_dir_style,
                                                 batch_size=args.batch_size,
-                                                num_threads=args.num_workers)],
+                                                num_threads=args.num_workers,
+                                                prefetch_queue_depth=4 if args.enable_amp else 2)],
             ['content', 'style'],
             reader_name='Reader'
         )
@@ -182,11 +195,8 @@ else:
 
 print("Training...")
 train.train_model(model, 
-                  optimizer, 
-                  loss, 
-                  train_loader, 
-                  val_loader, 
-                  "Colorization" if args.model == "color" else "StyleTransfer", 
-                  epochs=args.epochs, 
-                  checkpoint_freq=args.checkpoint_freq, 
-                  resume_id=args.resume_id)
+                optimizer, 
+                loss, 
+                train_loader, 
+                val_loader, 
+                args)
