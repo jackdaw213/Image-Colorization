@@ -3,7 +3,7 @@ import torch.nn as nn
 import torchvision
 from torchvision.models.resnet import ResNet34_Weights
 from torchvision.models import VGG19_Weights
-import auto_parts as ap
+import model_parts as mp
 import torch.nn.functional as F
 
 """
@@ -69,12 +69,12 @@ class StyleTransfer(nn.Module):
             '17': 'relu3_4'
         }
 
-        self.adain = ap.AdaIN()
+        self.adain = mp.AdaIN()
 
-        self.d4 = ap.VggDecoderBlock(512, 256, 4)
-        self.d3 = ap.VggDecoderBlock(256, 128, 3)
-        self.d2 = ap.VggDecoderBlock(128, 64, 2)
-        self.d1 = ap.VggDecoderBlock(64, 3, 1)
+        self.d4 = mp.VggDecoderBlock(512, 256, 4)
+        self.d3 = mp.VggDecoderBlock(256, 128, 3)
+        self.d2 = mp.VggDecoderBlock(128, 64, 2)
+        self.d1 = mp.VggDecoderBlock(64, 3, 1)
 
     def encoder(self, input, style_features=None, concat_features=None):
         """
@@ -153,16 +153,16 @@ class UNetResEncoder(nn.Module):
         # Need to wrap this in a module list or else cuda() will not work
         self.resnet_layers = nn.ModuleList(resnet_layers)
 
-        self.ls = ap.LatentSpace(512, 512)
+        self.ls = mp.LatentSpace(512, 512)
 
-        self.d6 = ap.DecoderBlock(512, 256)
-        self.d5 = ap.DecoderBlock(256, 128)
-        self.d4 = ap.DecoderBlock(128, 64)
-        self.d3 = ap.DecoderBlock(64, 64)
-        self.d2 = ap.DecoderBlock(64, 32)
-        self.d1 = ap.DecoderBlock(32, 32, 3)
+        self.d6 = mp.DecoderBlock(512, 256)
+        self.d5 = mp.DecoderBlock(256, 128)
+        self.d4 = mp.DecoderBlock(128, 64)
+        self.d3 = mp.DecoderBlock(64, 64)
+        self.d2 = mp.DecoderBlock(64, 32)
+        self.d1 = mp.DecoderBlock(32, 32, 3)
 
-        self.out = ap.OutConv(32, 2)
+        self.out = mp.OutConv(32, 2)
 
     def forward(self, x):
         inp = x
@@ -195,19 +195,19 @@ class UNet(nn.Module):
     def __init__(self):
         super().__init__()
         
-        self.e1 = ap.EncoderBlock(1, 64)
-        self.e2 = ap.EncoderBlock(64, 128)
-        self.e3 = ap.EncoderBlock(128, 256)
-        self.e4 = ap.EncoderBlock(256, 512)
+        self.e1 = mp.EncoderBlock(1, 64)
+        self.e2 = mp.EncoderBlock(64, 128)
+        self.e3 = mp.EncoderBlock(128, 256)
+        self.e4 = mp.EncoderBlock(256, 512)
 
-        self.ls = ap.LatentSpace(512, 1024)
+        self.ls = mp.LatentSpace(512, 1024)
 
-        self.d4 = ap.DecoderBlock(1024, 512)
-        self.d3 = ap.DecoderBlock(512, 256)
-        self.d2 = ap.DecoderBlock(256, 128)
-        self.d1 = ap.DecoderBlock(128, 64)
+        self.d4 = mp.DecoderBlock(1024, 512)
+        self.d3 = mp.DecoderBlock(512, 256)
+        self.d2 = mp.DecoderBlock(256, 128)
+        self.d1 = mp.DecoderBlock(128, 64)
 
-        self.out = ap.OutConv(64, 2)
+        self.out = mp.OutConv(64, 2)
 
     def forward(self, x):
         r1_e_f, x = self.e1(x)

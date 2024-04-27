@@ -7,7 +7,7 @@ from nvidia.dali.plugin.pytorch import DALIGenericIterator
 import dataset
 import model
 import train
-import auto_parts as ap
+import model_parts as mp
 import utils
 
 MODEL = "color"
@@ -183,10 +183,10 @@ else:
     
 if args.model == "color":
     model = model.UNetResEncoder()
-    loss = ap.ColorLoss()
+    loss = mp.ColorLoss()
 else:
     model = model.StyleTransfer()
-    loss = ap.AdaINLoss()
+    loss = mp.AdaINLoss()
 
 if args.optimizer == "sgd":
     optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum)

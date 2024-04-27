@@ -8,7 +8,7 @@ import dataset
 import model as model_module
 import train as train_module
 import utils
-import auto_parts
+import model_parts
 
 BATCH_SIZE = 32
 EPOCHS = 75
@@ -56,7 +56,7 @@ def train(config=None):
         # this config will be set by Sweep Controller
         config = wandb.config
 
-        loss = auto_parts.HuberLoss().cuda()
+        loss = model_parts.HuberLoss().cuda()
         model = build_model()
         train, val = build_loader(BATCH_SIZE)
         optimizer = build_optimizer(model, config)
