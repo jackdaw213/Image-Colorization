@@ -80,6 +80,7 @@ class ColorDataset(torch.utils.data.Dataset):
         
         color = images[1:, :, :]
         black = fn.expand_dims(images[0, :, :], axes=0)
+        black = black / 100
 
         # If color_peak is True then we will feed the model with color information
         # False if we want only the chrominance information
