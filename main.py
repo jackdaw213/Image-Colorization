@@ -11,7 +11,6 @@ import model_parts as mp
 import utils
 
 MODEL = "color"
-COLOR_PEAK = True
 NUM_EPOCHS = 10
 BATCH_SIZE = 8
 NUM_WORKERS = 4
@@ -30,11 +29,11 @@ MOMENTUM = 0.6
 RESUME_ID = None
 CHECKPOINT_FREQ = 1
 
-ENABLE_DALI = True
-ENABLE_AMP = True
 AMP_TYPE = "bf16"
-DATA_AUGMENTATION = True
-SPICY_PYTORCH_FLAGS = True
+
+torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cudnn.benchmark = True
+torch.set_float32_matmul_precision("medium")
 
 parser = argparse.ArgumentParser(description='Image colorization using UNet')
 
@@ -42,8 +41,7 @@ parser.add_argument('-m', '--model', type=str,
                     default=MODEL,
                     help='Select what model to train',
                     choices=["color", "style"])
-parser.add_argument('-cp', '--color_peak', type=bool,
-                    default=COLOR_PEAK,
+parser.add_argument('-cp', '--color_peak', action='store_true',
                     help='Passing color infos to the model during training')
 parser.add_argument('-e', '--epochs', type=int,
                     default=NUM_EPOCHS,
@@ -94,30 +92,17 @@ parser.add_argument('-cf', '--checkpoint_freq', type=int,
                     default=CHECKPOINT_FREQ,
                     help='Frequency of saving checkpoints during training, -1 for no checkpoints')
 
-parser.add_argument('-dali', '--enable_dali', type=bool,
-                    default=ENABLE_DALI,
+parser.add_argument('--enable_dali', action='store_true',
                     help='Enable DALI for faster data loading')
-parser.add_argument('-amp', '--enable_amp', type=bool,
-                    default=ENABLE_AMP,
+parser.add_argument('--enable_amp', action='store_true',
                     help='Enable Mixed Precision for faster training and lower memory usage')
+
 parser.add_argument('-ampt', '--amp_dtype', type=str,
                     default=AMP_TYPE,
                     help='Set dtype for amp',
                     choices=["bf16", "fp16"])
-parser.add_argument('-da', '--data_augmentation', type=bool,
-                    default=DATA_AUGMENTATION,
-                    help='Enable data augmentation during training')
-parser.add_argument('--spicy_pytorch_flags', type=bool,
-                    default=SPICY_PYTORCH_FLAGS,
-                    help='Enable spicy PyTorch flags for extra flavor and performance')
 
 args = parser.parse_args()
-
-if args.spicy_pytorch_flags:
-    torch.backends.cudnn.allow_tf32 = True
-    torch.backends.cuda.matmul.allow_tf32 = True
-    torch.backends.cudnn.benchmark = True
-    torch.set_float32_matmul_precision("medium")
 
 print("Init dataloader")
 if args.enable_dali:
