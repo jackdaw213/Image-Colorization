@@ -50,7 +50,7 @@ def concat_l_and_to_rgb(l, ab_shape):
     l = torch.cat([l, torch.zeros(ab_shape)], 0)
     return lab2rgb(l.permute(1, 2, 0))
 
-def test_color_model(model, test_images_path, num_samples=8):
+def test_color_model(model, test_images_path, color_peak=True, num_samples=8):
     images = os.listdir(test_images_path)
     images = np.random.choice(images, num_samples, replace=False)
 
@@ -67,9 +67,13 @@ def test_color_model(model, test_images_path, num_samples=8):
         pil_img = F.to_tensor(pil_img)
         l, ab = rgb_to_l_ab(pil_img)
 
-        mask = (torch.rand((ab.shape[1], ab.shape[2])) > 0.95).float()
-        inp = torch.cat([l, ab * mask], dim=0)
-        input.append(lab2rgb(inp.permute(1, 2, 0)))
+        if color_peak:
+            mask = (torch.rand((ab.shape[1], ab.shape[2])) > 0.95).float()
+            inp = torch.cat([l/100, ab * mask], dim=0)
+            input.append(lab2rgb(torch.cat((l, torch.zeros(2, ab.shape[1], ab.shape[2])), dim=0).permute(1, 2, 0)))
+        else:
+            inp = torch.cat((l/100, torch.zeros(2, ab.shape[1], ab.shape[2])), dim=0)
+            input.append(lab2rgb(torch.cat((l, torch.zeros(2, ab.shape[1], ab.shape[2])), dim=0).permute(1, 2, 0)))
 
         ab = ab.unsqueeze(0).float()
         inp = inp.unsqueeze(0).float()
