@@ -124,21 +124,15 @@ class StyleDataset(torch.utils.data.Dataset):
     
     @staticmethod
     @pipeline_def(device_id=0)
-    def dali_pipeline(content_dir, style_dir):
+    def dali_pipeline(content_dir):
         content_images, _ = fn.readers.file(file_root=content_dir, 
                                             files=utils.list_images(content_dir),
                                             random_shuffle=True, 
                                             name="Reader")
         
-        style_images, _ = fn.readers.file(file_root=style_dir, 
-                                            files=utils.list_images(style_dir),
-                                            random_shuffle=True)
-        
         content_images = fn.decoders.image(content_images, device="mixed", output_type=types.RGB)
-        style_images = fn.decoders.image(style_images, device="mixed", output_type=types.RGB)
 
         content_images = fn.resize(content_images, size=512, dtype=types.FLOAT)
-        style_images = fn.resize(style_images, size=512, dtype=types.FLOAT)
 
         """
         Pytorch ToTensor() transform brings the image to [0, 1] range then Normalize() 
@@ -161,12 +155,5 @@ class StyleDataset(torch.utils.data.Dataset):
                                                 crop_pos_y=fn.random.uniform(range=(0, 1)),
                                                 mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
                                                 std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
-        style_images = fn.crop_mirror_normalize(style_images, 
-                                                dtype=types.FLOAT,
-                                                crop=(256, 256),
-                                                crop_pos_x=fn.random.uniform(range=(0, 1)),
-                                                crop_pos_y=fn.random.uniform(range=(0, 1)),
-                                                mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
-                                                std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
 
-        return content_images, style_images
+        return content_images

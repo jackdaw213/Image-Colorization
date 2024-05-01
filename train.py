@@ -100,7 +100,7 @@ def train_style(model, optimizer, scaler, loss_func, loader, device, args):
         dtype = torch.float16
 
     for _, data in enumerate(loader):
-        content, style = data[0]['content'], data[0]['style']
+        content = data[0]['content']
 
         with torch.autocast(device_type="cuda", dtype=dtype, enabled=args.enable_amp):
             vgg_out, adain, vgg_out_features, style_features = model(content, style, training=True)
@@ -133,7 +133,7 @@ def val_style(model, loss_func, loader, device, args):
         dtype = torch.float16
 
     for _, data in enumerate(loader):
-        content, style = data[0]['content'].float(), data[0]['style'].float()
+        content = data[0]['content']
 
         with torch.no_grad(), torch.autocast(device_type="cuda", dtype=dtype, enabled=args.enable_amp):
             vgg_out, adain, vgg_out_features, style_features = model(content, style, training=True)
