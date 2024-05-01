@@ -103,8 +103,8 @@ def train_style(model, optimizer, scaler, loss_func, loader, device, args):
         content = data[0]['content']
 
         with torch.autocast(device_type="cuda", dtype=dtype, enabled=args.enable_amp):
-            vgg_out, adain, vgg_out_features, style_features = model(content, style, training=True)
-            content_loss, style_loss = loss_func(vgg_out, adain, vgg_out_features, style_features)
+            content_out, content_features, content_features_loss = model(content)
+            content_loss, style_loss = loss_func(content_out, content_features, content_features_loss)
             total_loss = content_loss + style_loss
 
         # https://discuss.pytorch.org/t/whats-the-correct-way-of-using-amp-with-multiple-losses/93328/3
@@ -136,8 +136,8 @@ def val_style(model, loss_func, loader, device, args):
         content = data[0]['content']
 
         with torch.no_grad(), torch.autocast(device_type="cuda", dtype=dtype, enabled=args.enable_amp):
-            vgg_out, adain, vgg_out_features, style_features = model(content, style, training=True)
-            content_loss, style_loss = loss_func(vgg_out, adain, vgg_out_features, style_features)
+            content_out, content_features, content_features_loss = model(content)
+            content_loss, style_loss = loss_func(content, content_out, content_features, content_features_loss)
             total_loss = content_loss + style_loss
 
         content_metric(content_loss)

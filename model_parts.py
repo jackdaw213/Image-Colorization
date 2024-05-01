@@ -24,23 +24,20 @@ class WCT(nn.Module):
         return csF
     
 class StyleLoss(nn.Module):
-    def __init__(self, _lambda=7.5):
+    def __init__(self, _lambda=0.5):
         super().__init__()
         self._lambda = _lambda
 
-    def contentLoss(self, vgg_out, adain_out):
-        return F.mse_loss(vgg_out, adain_out)
+    def contentLoss(self, content, content_out):
+        return F.mse_loss(content, content_out)
 
-    def styleLoss(self, vgg_out_features, style_features):
-        mean_sum = 0
-        std_sum = 0
-        for vgg_out, style in zip(vgg_out_features, style_features):
-            vgg_out_mean, vgg_out_std = utils.mean_std(vgg_out)
-            style_mean, style_std = utils.mean_std(style)
+    def styleLoss(self, content_features, content_features_loss):
+        style_loss = 0
 
-            mean_sum += F.mse_loss(vgg_out_mean, style_mean)
-            std_sum += F.mse_loss(vgg_out_std, style_std)
-        return mean_sum + std_sum
+        for c, cl in zip(content_features, content_features_loss):
+            style_loss += F.mse_loss(c, cl)
+
+        return style_loss
 
     def forward(self, vgg_out, adain_out, vgg_out_features, style_features):
         """
@@ -50,7 +47,7 @@ class StyleLoss(nn.Module):
             vgg_out_features: Features from encoder 2
             style_features: Features from encoder 1
         """        
-        return self.contentLoss(vgg_out, adain_out), self._lambda * self.styleLoss(vgg_out_features, style_features)
+        return self.contentLoss(vgg_out, adain_out) * (1 - self._lambda), self._lambda * self.styleLoss(vgg_out_features, style_features)
 
 class ColorLoss(nn.Module):
     def __init__(self):
