@@ -51,89 +51,122 @@ class StyleTransfer(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.vgg19 = torchvision.models.vgg19(weights=VGG19_Weights.DEFAULT).features
+        vgg19 = torchvision.models.vgg19(weights=VGG19_Weights.DEFAULT).features
 
-        for param in self.vgg19.parameters():
+        for param in vgg19.parameters():
             param.requires_grad = False
 
-        self.vgg19_feature_map = {
-            '1': 'relu1_1',
-            '6': 'relu2_1',
-            '11': 'relu3_1', 
-            '20': 'relu4_1'
-        }
+        self.e1 = nn.Sequential(*list(vgg19.children())[:2])
+        self.e2 = nn.Sequential(*list(vgg19.children())[2:7])
+        self.e3 = nn.Sequential(*list(vgg19.children())[7:12])
+        self.e4 = nn.Sequential(*list(vgg19.children())[12:21])
+        self.e5 = nn.Sequential(*list(vgg19.children())[21:30])
 
-        self.vgg19_concat_map = {
-            '3': 'relu1_2',
-            '8': 'relu2_2',
-            '17': 'relu3_4'
-        }
+        self.in1 = nn.InstanceNorm2d(64)
+        self.in2 = nn.InstanceNorm2d(128)
+        self.in3 = nn.InstanceNorm2d(256)
+        self.in4 = nn.InstanceNorm2d(512)
 
-        self.adain = mp.AdaIN()
+        self.max1 = nn.MaxPool2d(kernel_size=16,stride=16)
+        self.max2 = nn.MaxPool2d(kernel_size=8,stride=8)
+        self.max3 = nn.MaxPool2d(kernel_size=4,stride=4)
+        self.max4 = nn.MaxPool2d(kernel_size=2,stride=2)
 
+        self.wct = mp.WCT()
+
+        self.d5 = mp.VggDecoderBlock(512, 512, 5)
         self.d4 = mp.VggDecoderBlock(512, 256, 4)
         self.d3 = mp.VggDecoderBlock(256, 128, 3)
         self.d2 = mp.VggDecoderBlock(128, 64, 2)
         self.d1 = mp.VggDecoderBlock(64, 3, 1)
 
-    def encoder(self, input, style_features=None, concat_features=None):
-        """
-            Because we needs style_features for style representations and concat_features from
-            the content image for final image reconstruction, therefore
 
-            style_features: If this is NOT null then the input is style image
-            concat_features: If this is NOT null then the input is content image
-            IF both of them are null, input is the final reconstructed image and the function will
-            return it's features and the encoder output for loss calculation
-        """        
-
-        layer = 1
+    def encoder(self, input):
         features = []
 
-        # Cut off the model and sets up hooks is cleaner than looping through modules
-        # But I want to use torch.compile(), which doesn't support hooks
-        for num, module in self.vgg19.named_modules():
-            if num != '' and int(num) <= 20:
-                # In the paper the author replaces max pool with avg pool
-                if isinstance(module, nn.MaxPool2d):
-                    input = F.avg_pool2d(input, kernel_size=2, stride=2)
-                else:
-                    input = module(input)
+        out1 = self.e1(input)
+        features.append(out1)
 
-                if num in self.vgg19_feature_map:
-                    if style_features is not None:
-                        style_features.append(input)
-                    elif concat_features is None:
-                        features.append(input)
+        out2 = self.e2(out1)
+        features.append(out2)
 
-                if num in self.vgg19_concat_map and concat_features is not None:
-                    concat_features[f"layer{layer}"] = input
-                    layer += 1
+        out3 = self.e3(out2)
+        features.append(out3)
 
-        if style_features is None and concat_features is None:
-            return input, features
+        out4 = self.e4(out3)
+        features.append(out4)
+
+        out = self.e5(out4)
+
+        return out, features
+    
+    def bfa(self, input, concat):
+        input = torch.concat([input, self.max1(concat[0])], dim=1)
+        input = torch.concat([input, self.max2(concat[1])], dim=1)
+        input = torch.concat([input, self.max3(concat[2])], dim=1)
+        input = torch.concat([input, self.max4(concat[3])], dim=1)
+
         return input
+    
+    def insl(self, content_features, style_features):
+        insl_features = []
 
-    def forward(self, content, style, training=False):
-        concat_features = {}
-        style_features = []
-
-        content = self.encoder(content, concat_features=concat_features)
-        style = self.encoder(style, style_features=style_features)
-
-        adain = self.adain(content, style)
-
-        x = self.d4(adain, None)
-        x = self.d3(x, concat_features["layer3"])
-        x = self.d2(x, concat_features["layer2"])
-        x = self.d1(x, concat_features["layer1"])
+        insl_features.append(self.wct(self.in1(content_features[0]), self.in1(style_features[0])))
+        insl_features.append(self.wct(self.in2(content_features[1]), self.in2(style_features[1])))
+        insl_features.append(self.wct(self.in3(content_features[2]), self.in3(style_features[2])))
+        insl_features.append(self.wct(self.in4(content_features[3]), self.in4(style_features[3])))
         
-        if training:
-            vgg_out, vgg_out_features = self.encoder(x)
-            return vgg_out, adain, vgg_out_features, style_features
-        else:
-            return x
+        return insl_features
 
+    def forward(self, content, style=None):
+        # Training mode, no wct
+        if style is None:
+            content, content_features = self.encoder(content)
+
+            insl = self.insl(content_features)
+
+            content = self.bfa(content, content_features)
+
+            content = self.d5(content, None)
+            content = self.d4(content, self.in4(content_features[3]))
+            content = self.d3(content, self.in3(content_features[2]))
+            content = self.d2(content, self.in2(content_features[1]))
+            content = self.d1(content, self.in1(content_features[0]))
+
+            _, content_features_loss = self.encoder(content)
+
+            return content, content_features, content_features_loss
+        
+        content, content_features = self.encoder(content)
+        style, style_features = self.encoder(style)
+
+        insl = self.insl(content_features, style_features)
+
+        content_wct = self.wct(content, style)
+
+        content_wct = self.bfa(content_wct, content_features)
+        style = self.bfa(style, style_features)
+
+        content_wct = self.d5(content_wct, None)
+        style = self.d5(style, None)
+        content_wct = self.wct(content_wct, style)
+
+        content_wct = self.d4(content_wct, insl[3])
+        style = self.d4(style, style_features[3])
+        content_wct = self.wct(content_wct, style)
+
+        content_wct = self.d3(content_wct, insl[2])
+        style = self.d3(style, style_features[2])
+        content_wct = self.wct(content_wct, style)
+
+        content_wct = self.d2(content_wct, insl[1])
+        style = self.d2(style, style_features[1])
+        content_wct = self.wct(content_wct, style)
+
+        content_wct = self.d1(content_wct, insl[0])
+
+        return content_wct
+    
 class UNetResEncoder(nn.Module):
     def __init__(self):
         super().__init__()
