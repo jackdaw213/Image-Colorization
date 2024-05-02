@@ -104,7 +104,7 @@ def train_style(model, optimizer, scaler, loss_func, loader, device, args):
 
         with torch.autocast(device_type="cuda", dtype=dtype, enabled=args.enable_amp):
             content_out, content_features, content_features_loss = model(content)
-            content_loss, style_loss = loss_func(content_out, content_features, content_features_loss)
+            content_loss, style_loss = loss_func(content, content_out, content_features, content_features_loss)
             total_loss = content_loss + style_loss
 
         # https://discuss.pytorch.org/t/whats-the-correct-way-of-using-amp-with-multiple-losses/93328/3
