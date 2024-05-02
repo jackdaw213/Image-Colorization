@@ -17,17 +17,24 @@ def image_grid(**kwargs):
     col_names = list(kwargs.keys())
     num_rows = len(kwargs[col_names[0]])
     num_cols = len(col_names)
-
+        
     fig, axs = plt.subplots(num_rows, num_cols, figsize=(12, 9))
 
-    for row in range(num_rows):
+    if num_rows != 1:
+        for row in range(num_rows):
+            for col in range(num_cols):
+                ax = axs[row, col]
+                if row == 0:
+                    ax.set_title(col_names[col])
+                ax.imshow(kwargs[col_names[col]][row])
+                ax.axis('off')
+    else:
         for col in range(num_cols):
-            ax = axs[row, col]
-            if row == 0:
-                ax.set_title(col_names[col])
-            ax.imshow(kwargs[col_names[col]][row])
+            ax = axs[col]
+            ax.set_title(col_names[col])
+            ax.imshow(kwargs[col_names[col]][0])
             ax.axis('off')
-            
+    
     # Adjust layout
     plt.tight_layout()
     plt.show()
