@@ -43,15 +43,8 @@ class StyleLoss(nn.Module):
 
         return style_loss
 
-    def forward(self, vgg_out, adain_out, vgg_out_features, style_features):
-        """
-            The input will go through encoder1 -> adain -> decoder -> encoder 2 (for calculating losses)
-            vgg_out: Output of encoder2 
-            adain_out: Output of the adain layer
-            vgg_out_features: Features from encoder 2
-            style_features: Features from encoder 1
-        """        
-        return self.contentLoss(vgg_out, adain_out) * (1 - self._lambda), self._lambda * self.styleLoss(vgg_out_features, style_features)
+    def forward(self, content, content_out, content_features, content_features_loss):
+        return self.contentLoss(content, content_out) * (1 - self._lambda), self._lambda * self.styleLoss(content_features, content_features_loss)
 
 class ColorLoss(nn.Module):
     def __init__(self):
