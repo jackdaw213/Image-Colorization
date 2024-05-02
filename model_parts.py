@@ -12,6 +12,10 @@ class WCT(nn.Module):
     def forward(self, cF,sF,alpha=1):
         cF = cF.double()
         sF = sF.double()
+        if len(cF.size()) == 4:
+            cF = cF[0]
+        if len(sF.size()) == 4:
+            sF = sF[0]
         C,W,H = cF.size(0),cF.size(1),cF.size(2)
         _,W1,H1 = sF.size(0),sF.size(1),sF.size(2)
         cFView = cF.view(C,-1)
@@ -20,7 +24,7 @@ class WCT(nn.Module):
         targetFeature = utils.whiten_and_color(cFView,sFView)
         targetFeature = targetFeature.view_as(cF)
         csF = alpha * targetFeature + (1.0 - alpha) * cF
-        csF = csF.float()
+        csF = csF.float().unsqueeze(0)
         return csF
     
 class StyleLoss(nn.Module):
