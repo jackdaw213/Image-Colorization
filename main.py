@@ -160,7 +160,7 @@ if args.model == "color":
     loss = mp.ColorLoss()
 else:
     model = model.StyleTransfer()
-    loss = mp.AdaINLoss()
+    loss = mp.StyleLoss()
 
 if args.optimizer == "sgd":
     optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum)
