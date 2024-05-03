@@ -122,8 +122,11 @@ def test_style_model(model, con_images_path, sty_images_path, num_samples=8):
         model.eval()
         with torch.no_grad():
             out = model(con, sty)
-        out = denorm(out.squeeze())
-        output.append(F.to_pil_image(out))
+            
+        # F.to_pil_image() can cause weird artifacts
+        # https://stackoverflow.com/questions/62428919/displaying-image-with-pil-causes-weird-color-patches
+        out = out.squeeze()
+        output.append(out.permute(1, 2, 0))
 
     image_grid(Content=con_images, Style=sty_images, Output=output)            
 
