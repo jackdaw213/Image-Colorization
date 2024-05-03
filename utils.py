@@ -40,12 +40,18 @@ def image_grid(**kwargs):
     plt.show()
 
 def l_ab_to_rgb(l, ab):
+    """
+    Input 2 CHW tensors -> Output 1 CHW tensor
+    """
     img = torch.cat([l, ab], 0)
     img = lab2rgb(img.permute(1, 2, 0))
     img = torch.from_numpy(img)
     return img.permute(2, 0, 1)
 
 def rgb_to_l_ab(rgb):
+    """
+    Input 1 CHW tensors or PIL image -> Output 2 CHW tensor
+    """
     if isinstance(rgb, torch.Tensor):
         rgb = rgb.permute(1, 2, 0)
     img = torch.from_numpy(rgb2lab(rgb)).permute(2, 0, 1)
@@ -82,14 +88,13 @@ def test_color_model(model, test_images_path, color_peak=True, num_samples=8):
             inp = torch.cat((l/100, torch.zeros(2, ab.shape[1], ab.shape[2])), dim=0)
             input.append(lab2rgb(torch.cat((l, torch.zeros(2, ab.shape[1], ab.shape[2])), dim=0).permute(1, 2, 0)))
 
-        ab = ab.unsqueeze(0).float()
         inp = inp.unsqueeze(0).float()
 
         model.eval()
         with torch.no_grad():
             out = model(inp)
         out = out.squeeze(0)
-        ab = ab.squeeze(0)
+
         output.append(l_ab_to_rgb(l, out).permute(1, 2, 0))
 
     image_grid(Input=input, Output=output, Ground_Truth=ground_truth)     
@@ -109,12 +114,12 @@ def test_style_model(model, con_images_path, sty_images_path, num_samples=8):
         con = os.path.join(con_images_path, con) 
         con = Image.open(con).convert("RGB")
         con_images.append(con)
-        con = norm_pil(con)
+        con = F.to_tensor(con)
 
         sty = os.path.join(sty_images_path, sty) 
         sty = Image.open(sty).convert("RGB")
         sty_images.append(sty)
-        sty = norm_pil(sty)
+        sty = F.to_tensor(sty)
 
         con = con.unsqueeze(0).float()
         sty = sty.unsqueeze(0).float()
