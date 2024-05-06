@@ -185,7 +185,7 @@ def train_model(model, optimizer, loss, train_loader, val_loader, args):
         run = wandb.init(project=project_name, config=config)
 
     for epoch in tq.tqdm(range(init_epoch, args.epochs), total=args.epochs, desc='Epochs', initial=init_epoch):
-        if isinstance(model, UNetResEncoder):
+        if args.model == "color":
             train_loss = train_color(cmodel, optimizer, scaler, loss, train_loader, device, args)
             val_loss = val_color(cmodel, loss, val_loader, device, args)
             wandb.log({"loss": train_loss, "loss_val": val_loss, "epoch": epoch})
@@ -207,4 +207,10 @@ def train_model(model, optimizer, loss, train_loader, val_loader, args):
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             print(f"Saved checkpoint at epoch: {epoch + 1} ({now})")
 
+    if args.model == "color":
+        model_scripted = torch.jit.trace(model, torch.rand(1,3,256,256))
+        model_scripted.save('model/model_color.pt')
+    else:
+        model_scripted = torch.jit.trace(model, (torch.rand(1,3,256,256),torch.rand(1,3,256,256)))
+        model_scripted.save('model/model_style.pt')
     run.finish()
