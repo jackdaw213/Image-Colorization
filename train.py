@@ -208,9 +208,9 @@ def train_model(model, optimizer, loss, train_loader, val_loader, args):
             print(f"Saved checkpoint at epoch: {epoch + 1} ({now})")
 
     if args.model == "color":
-        model_scripted = torch.jit.trace(model, torch.rand(1,3,256,256))
+        model_scripted = torch.jit.trace(model.cpu(), torch.rand(1,3,256,256))
         model_scripted.save('model/model_color.pt')
     else:
-        model_scripted = torch.jit.trace(model, (torch.rand(1,3,256,256),torch.rand(1,3,256,256)))
+        model_scripted = torch.jit.trace(model.cpu(), (torch.rand(1,3,256,256),torch.rand(1,3,256,256)))
         model_scripted.save('model/model_style.pt')
     run.finish()
