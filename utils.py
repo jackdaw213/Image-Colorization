@@ -1,7 +1,6 @@
 import os
 import sys
 import random
-
 import torch
 
 import matplotlib.pyplot as plt
@@ -20,7 +19,7 @@ def image_grid(**kwargs):
         
     fig, axs = plt.subplots(num_rows, num_cols, figsize=(12, 9))
 
-    if num_rows != 1:
+    if num_rows != 1 and num_cols != 1:
         for row in range(num_rows):
             for col in range(num_cols):
                 ax = axs[row, col]
@@ -28,12 +27,24 @@ def image_grid(**kwargs):
                     ax.set_title(col_names[col])
                 ax.imshow(kwargs[col_names[col]][row])
                 ax.axis('off')
-    else:
+    elif num_rows != 1 and num_cols == 1:
+        for row in range(num_rows):
+            ax = axs[row]
+            if row == 0:
+                ax.set_title(col_names[0])
+            ax.imshow(kwargs[col_names[0]][row])
+            ax.axis('off')
+            
+    elif num_rows == 1 and num_cols != 1:
         for col in range(num_cols):
             ax = axs[col]
             ax.set_title(col_names[col])
             ax.imshow(kwargs[col_names[col]][0])
             ax.axis('off')
+    else:
+        axs.set_title(col_names[0])
+        axs.imshow(kwargs[col_names[0]][0])
+        axs.axis('off')
     
     # Adjust layout
     plt.tight_layout()
@@ -43,7 +54,7 @@ def l_ab_to_rgb(l, ab):
     """
     Input 2 CHW tensors -> Output 1 CHW tensor
     """
-    img = torch.cat([l, ab], 0)
+    img = torch.cat([l * 100 + 50, ab  * 110], 0)
     img = lab2rgb(img.permute(1, 2, 0))
     img = torch.from_numpy(img)
     return img.permute(2, 0, 1)
@@ -57,7 +68,7 @@ def rgb_to_l_ab(rgb):
     img = torch.from_numpy(rgb2lab(rgb)).permute(2, 0, 1)
     ab = img[1:, :, :]
     l = img[0, :, :].unsqueeze(0) # Add the channels dimension 
-    return l, ab
+    return (l - 50) / 100, ab / 110
 
 def concat_l_and_to_rgb(l, ab_shape):
     l = torch.cat([l, torch.zeros(ab_shape)], 0)
@@ -82,11 +93,11 @@ def test_color_model(model, test_images_path, color_peak=True, num_samples=8):
 
         if color_peak:
             mask = (torch.rand((ab.shape[1], ab.shape[2])) > 0.95).float()
-            inp = torch.cat([l/100, ab * mask], dim=0)
-            input.append(lab2rgb(torch.cat((l, torch.zeros(2, ab.shape[1], ab.shape[2])), dim=0).permute(1, 2, 0)))
+            inp = torch.cat([l, ab * mask], dim=0)
+            input.append(lab2rgb(torch.cat((l*100+50, ab * mask), dim=0).permute(1, 2, 0)))
         else:
-            inp = torch.cat((l/100, torch.zeros(2, ab.shape[1], ab.shape[2])), dim=0)
-            input.append(lab2rgb(torch.cat((l, torch.zeros(2, ab.shape[1], ab.shape[2])), dim=0).permute(1, 2, 0)))
+            inp = torch.cat((l, torch.zeros(2, ab.shape[1], ab.shape[2])), dim=0)
+            input.append(lab2rgb(torch.cat((l*100+50, torch.zeros(2, ab.shape[1], ab.shape[2])), dim=0).permute(1, 2, 0)))
 
         inp = inp.unsqueeze(0).float()
 
