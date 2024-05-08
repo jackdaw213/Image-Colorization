@@ -207,6 +207,11 @@ def train_model(model, optimizer, loss, train_loader, val_loader, args):
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             print(f"Saved checkpoint at epoch: {epoch + 1} ({now})")
 
+    """
+    We need to call eval() before tracing because [1*]. However, the last loop is 
+    for validation, which has already called eval() for us
+    [1*]: https://github.com/pytorch/pytorch/issues/23999#issuecomment-581687224
+    """
     if args.model == "color":
         model_scripted = torch.jit.trace(model.cpu(), torch.rand(1,3,256,256))
         model_scripted.save('model/model_color.pt')
