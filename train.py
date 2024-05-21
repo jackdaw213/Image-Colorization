@@ -86,66 +86,6 @@ def val_color(model, loss_func, loader, device, args):
 
     return epoch_loss.compute()
 
-def train_style(model, optimizer, scaler, loss_func, loader, device, args):
-
-    model.train()
-
-    content_metric = torchmetrics.MeanMetric().to(device)
-    style_metric = torchmetrics.MeanMetric().to(device)
-    total_metric = torchmetrics.MeanMetric().to(device)
-
-    if args.amp_dtype == "bf16":
-        dtype = torch.bfloat16
-    else:
-        dtype = torch.float16
-
-    for _, data in enumerate(loader):
-        content = data[0]['content']
-
-        with torch.autocast(device_type="cuda", dtype=dtype, enabled=args.enable_amp):
-            content_out, content_features, content_features_loss = model(content)
-            content_loss, style_loss = loss_func(content, content_out, content_features, content_features_loss)
-            total_loss = content_loss + style_loss
-
-        # https://discuss.pytorch.org/t/whats-the-correct-way-of-using-amp-with-multiple-losses/93328/3
-        scaler.scale(total_loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
-        optimizer.zero_grad()
-
-        content_metric(content_loss)
-        style_metric(style_loss)
-        total_metric(total_loss)
-
-    return content_metric.compute(), style_metric.compute(), total_metric.compute()
-
-def val_style(model, loss_func, loader, device, args):
-
-    model.eval()
-
-    content_metric = torchmetrics.MeanMetric().to(device)
-    style_metric = torchmetrics.MeanMetric().to(device)
-    total_metric = torchmetrics.MeanMetric().to(device)
-    
-    if args.amp_dtype == "bf16":
-        dtype = torch.bfloat16
-    else:
-        dtype = torch.float16
-
-    for _, data in enumerate(loader):
-        content = data[0]['content']
-
-        with torch.no_grad(), torch.autocast(device_type="cuda", dtype=dtype, enabled=args.enable_amp):
-            content_out, content_features, content_features_loss = model(content)
-            content_loss, style_loss = loss_func(content, content_out, content_features, content_features_loss)
-            total_loss = content_loss + style_loss
-
-        content_metric(content_loss)
-        style_metric(style_loss)
-        total_metric(total_loss)
-
-    return content_metric.compute(), style_metric.compute(), total_metric.compute()
-
 def train_model(model, optimizer, loss, train_loader, val_loader, args):
                 
     device = torch.device("cpu")
@@ -156,7 +96,7 @@ def train_model(model, optimizer, loss, train_loader, val_loader, args):
     checkpoint_count = 0
     init_epoch = 0
     loss.to(device)
-    project_name = "Colorization" if args.model == "color" else "StyleTransfer"
+    project_name = "Colorization"
     scaler = torch.cuda.amp.GradScaler(enabled=args.enable_amp)
 
     config = {
@@ -185,20 +125,9 @@ def train_model(model, optimizer, loss, train_loader, val_loader, args):
         run = wandb.init(project=project_name, config=config)
 
     for epoch in tq.tqdm(range(init_epoch, args.epochs), total=args.epochs, desc='Epochs', initial=init_epoch):
-        if args.model == "color":
-            train_loss = train_color(cmodel, optimizer, scaler, loss, train_loader, device, args)
-            val_loss = val_color(cmodel, loss, val_loader, device, args)
-            wandb.log({"loss": train_loss, "loss_val": val_loss, "epoch": epoch})
-        else:
-            train_loss = train_style(cmodel, optimizer, scaler, loss, train_loader, device, args)
-            val_loss = val_style(cmodel, loss, val_loader, device, args)
-            wandb.log({"content_loss": train_loss[0], 
-                       "style_loss": train_loss[1], 
-                       "total_loss": train_loss[2], 
-                       "content_loss_val": val_loss[0], 
-                       "style_loss_val": val_loss[1], 
-                       "total_loss_val": val_loss[2], 
-                       "epoch": epoch})
+        train_loss = train_color(cmodel, optimizer, scaler, loss, train_loader, device, args)
+        val_loss = val_color(cmodel, loss, val_loader, device, args)
+        wandb.log({"loss": train_loss, "loss_val": val_loss, "epoch": epoch})
         
         checkpoint_count = checkpoint_count + 1 
         if checkpoint_count == args.checkpoint_freq:
@@ -212,10 +141,6 @@ def train_model(model, optimizer, loss, train_loader, val_loader, args):
     for validation, which has already called eval() for us
     [1*]: https://github.com/pytorch/pytorch/issues/23999#issuecomment-581687224
     """
-    if args.model == "color":
-        model_scripted = torch.jit.trace(model.cpu(), torch.rand(1,3,256,256))
-        model_scripted.save('model/model_color.pt')
-    else:
-        model_scripted = torch.jit.trace(model.cpu(), (torch.rand(1,3,256,256),torch.rand(1,3,256,256)))
-        model_scripted.save('model/model_style.pt')
+    model_scripted = torch.jit.trace(model.cpu(), torch.rand(1,3,256,256))
+    model_scripted.save('model/model_color.pt')
     run.finish()

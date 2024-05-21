@@ -8,17 +8,13 @@ import dataset
 import model
 import train
 import model_parts as mp
-import utils
 
-MODEL = "color"
 NUM_EPOCHS = 10
 BATCH_SIZE = 8
 NUM_WORKERS = 4
 
-TRAIN_DIR = "data/train_color"
-VAL_DIR = "data/val_color"
-TRAIN_DIR_CONTENT = "data/train_content"
-VAL_DIR_CONTENT = "data/val_content"
+TRAIN_DIR = "data/train"
+VAL_DIR = "data/val"
 
 OPTIMIZER = "adam"
 LEARNING_RATE = 0.00005
@@ -35,10 +31,6 @@ torch.set_float32_matmul_precision("medium")
 
 parser = argparse.ArgumentParser(description='Image colorization using UNet')
 
-parser.add_argument('-m', '--model', type=str,
-                    default=MODEL,
-                    help='Select what model to train',
-                    choices=["color", "style"])
 parser.add_argument('-cp', '--color_peak', action='store_true',
                     help='Passing color infos to the model during training')
 parser.add_argument('-e', '--epochs', type=int,
@@ -57,13 +49,6 @@ parser.add_argument('-td', '--train_dir', type=str,
 parser.add_argument('-vd', '--val_dir', type=str,
                     default=VAL_DIR,
                     help='Path to the color model validation image folder')
-
-parser.add_argument('-tdc', '--train_dir_content', type=str,
-                    default=TRAIN_DIR_CONTENT,
-                    help='Path to the style model train_content image folder')
-parser.add_argument('-vdc', '--val_dir_content', type=str,
-                    default=VAL_DIR_CONTENT,
-                    help='Path to the style model val_content image folder')
 
 parser.add_argument('-op', '--optimizer', type=str,
                     default=OPTIMIZER,
@@ -97,50 +82,28 @@ args = parser.parse_args()
 
 print("Init dataloader")
 if args.enable_dali:
-    if args.model == "color":
-        train_loader = DALIGenericIterator(
-            [dataset.ColorDataset.dali_pipeline(image_dir=args.train_dir,
-                                                color_peak=args.color_peak,
-                                                batch_size=args.batch_size,
-                                                num_threads=args.num_workers,
-                                                prefetch_queue_depth=4 if args.enable_amp else 2)],
-            ['black', 'color', 'mask'],
-            reader_name='Reader'
-        )
+    train_loader = DALIGenericIterator(
+        [dataset.ColorDataset.dali_pipeline(image_dir=args.train_dir,
+                                            color_peak=args.color_peak,
+                                            batch_size=args.batch_size,
+                                            num_threads=args.num_workers,
+                                            prefetch_queue_depth=4 if args.enable_amp else 2)],
+        ['black', 'color', 'mask'],
+        reader_name='Reader'
+    )
 
-        val_loader = DALIGenericIterator(
-            [dataset.ColorDataset.dali_pipeline(image_dir=args.val_dir,
-                                                color_peak=args.color_peak,
-                                                batch_size=args.batch_size,
-                                                num_threads=args.num_workers,
-                                                prefetch_queue_depth=4 if args.enable_amp else 2)],
-            ['black', 'color', 'mask'],
-            reader_name='Reader'
-        )
-    else:
-        train_loader = DALIGenericIterator(
-            [dataset.StyleDataset.dali_pipeline(content_dir=args.train_dir_content,
-                                                batch_size=args.batch_size,
-                                                num_threads=args.num_workers,
-                                                prefetch_queue_depth=4 if args.enable_amp else 2)],
-            ['content'],
-            reader_name='Reader'
-        )
-
-        val_loader = DALIGenericIterator(
-            [dataset.StyleDataset.dali_pipeline(content_dir=args.val_dir_content,
-                                                batch_size=args.batch_size,
-                                                num_threads=args.num_workers,
-                                                prefetch_queue_depth=4 if args.enable_amp else 2)],
-            ['content'],
-            reader_name='Reader'
-        )
+    val_loader = DALIGenericIterator(
+        [dataset.ColorDataset.dali_pipeline(image_dir=args.val_dir,
+                                            color_peak=args.color_peak,
+                                            batch_size=args.batch_size,
+                                            num_threads=args.num_workers,
+                                            prefetch_queue_depth=4 if args.enable_amp else 2)],
+        ['black', 'color', 'mask'],
+        reader_name='Reader'
+    )
 else:
-    if args.model == "color":
-        train_dataset = dataset.ColorDataset(args.train_dir, True, args.color_peak)
-        val_dataset = dataset.ColorDataset(args.val_dir, True, args.color_peak)
-    else:
-        pass
+    train_dataset = dataset.ColorDataset(args.train_dir, True, args.color_peak)
+    val_dataset = dataset.ColorDataset(args.val_dir, True, args.color_peak)
 
     train_loader = DataLoader(
         train_dataset, 
@@ -155,12 +118,8 @@ else:
         num_workers=args.num_workers, 
         pin_memory=True)
     
-if args.model == "color":
-    model = model.UNetResEncoder()
-    loss = mp.ColorLoss()
-else:
-    model = model.StyleTransfer()
-    loss = mp.StyleLoss()
+model = model.UNetResEncoder()
+loss = mp.ColorLoss()
 
 if args.optimizer == "sgd":
     optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum)

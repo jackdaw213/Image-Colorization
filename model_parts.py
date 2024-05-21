@@ -5,46 +5,6 @@ import utils
 
 # Has anyone ever felt so embarrassed by their commit that they git reset --hard HEAD~1
 # a few times to erase their sins from history, or is it just me ¯\_(ツ)_/¯
-class WCT(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, cF,sF,alpha=1):
-        cF = cF.double()
-        sF = sF.double()
-        if len(cF.size()) == 4:
-            cF = cF[0]
-        if len(sF.size()) == 4:
-            sF = sF[0]
-        C,W,H = cF.size(0),cF.size(1),cF.size(2)
-        _,W1,H1 = sF.size(0),sF.size(1),sF.size(2)
-        cFView = cF.view(C,-1)
-        sFView = sF.view(C,-1)
-
-        targetFeature = utils.whiten_and_color(cFView,sFView)
-        targetFeature = targetFeature.view_as(cF)
-        csF = alpha * targetFeature + (1.0 - alpha) * cF
-        csF = csF.float().unsqueeze(0)
-        return csF
-    
-class StyleLoss(nn.Module):
-    def __init__(self, _lambda=0.5):
-        super().__init__()
-        self._lambda = _lambda
-
-    def contentLoss(self, content, content_out):
-        return F.mse_loss(content, content_out)
-
-    def styleLoss(self, content_features, content_features_loss):
-        style_loss = 0
-
-        for c, cl in zip(content_features, content_features_loss):
-            style_loss += F.mse_loss(c, cl)
-
-        return style_loss
-
-    def forward(self, content, content_out, content_features, content_features_loss):
-        return self.contentLoss(content, content_out) * (1 - self._lambda), self._lambda * self.styleLoss(content_features, content_features_loss)
 
 class ColorLoss(nn.Module):
     def __init__(self):
@@ -106,50 +66,6 @@ class DecoderBlock(nn.Module):
         up = utils.pad_fetures(up, con_channels)
         cat = torch.cat([up, con_channels], dim=1)
         return self.seq(cat)
-    
-class VggDecoderBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, layer):
-        super().__init__()
-
-        self.up_scale = nn.Upsample(scale_factor=2, mode='nearest')
-        
-        if layer < 3:
-            self.seq = nn.Sequential(
-                nn.Conv2d(in_channels * 2, in_channels, kernel_size=3, stride=1, padding=1, padding_mode='reflect'),
-                nn.ReLU(),
-                nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, padding_mode='reflect'),
-                nn.ReLU() 
-            )
-        elif layer < 5:
-            self.seq = nn.Sequential(
-                nn.Conv2d(in_channels * 2, in_channels, kernel_size=3, stride=1, padding=1, padding_mode='reflect'),
-                nn.ReLU(),
-                nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=1, padding=1, padding_mode='reflect'),
-                nn.ReLU(),
-                nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=1, padding=1, padding_mode='reflect'),
-                nn.ReLU(),
-                nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, padding_mode='reflect'),
-                nn.ReLU()
-            )
-        else:
-            self.seq = nn.Sequential(
-                # BFA
-                nn.Conv2d(in_channels + 960, in_channels, kernel_size=3, stride=1, padding=1, padding_mode='reflect'),
-                nn.ReLU(),
-                nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=1, padding=1, padding_mode='reflect'),
-                nn.ReLU(),
-                nn.Conv2d(in_channels, in_channels, kernel_size=3, stride=1, padding=1, padding_mode='reflect'),
-                nn.ReLU(),
-                nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, padding_mode='reflect'),
-                nn.ReLU()
-            )
-
-    def forward(self, inp, con_channels):
-        if con_channels is not None:
-            inp = self.up_scale(inp)
-            inp = utils.pad_fetures(inp, con_channels)
-            inp = torch.cat([inp, con_channels], dim=1)
-        return self.seq(inp)
     
 class LatentSpace(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, padding=1):
